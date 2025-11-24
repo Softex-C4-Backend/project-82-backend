@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    /* Configuração do Ambiente */
+    "target": "ES2022",        /* Permite usar recursos do JS (async/await, etc) */
+    "module": "CommonJS",      /* Compatível com o padrão do Node.js atual */
+    "rootDir": "./src",        /* Onde está seu código */
+    "outDir": "./dist",        /* Onde fica o código compilado */
+    
+    /* Interoperabilidade */
+    "esModuleInterop": true,   /* Permite importar bibliotecas antigas sem erros */
+    "forceConsistentCasingInFileNames": true, /* Evita erros de maiúsculas/minúsculas (Windows/Mac) */
+    
+    /* Qualidade de Código (Rigoroso) */
+    "strict": true,            /* Ativa todas as verificações de segurança de tipo */
+    "skipLibCheck": true       /* Pula verificação de arquivos de definição (mais rápido) */
+  },
+  "include": ["src/**/*"],     /* Inclui tudo na pasta src */
+  "exclude": ["node_modules"]  /* Ignora a pasta pesada */
+}
