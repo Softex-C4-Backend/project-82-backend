@@ -1,0 +1,52 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Gerador: Cria o Prisma Client (a ponte Node.js -> Banco)
+generator client {
+  provider = "prisma-client-js"
+}
+
+// =========================================================
+// INÍCIO DOS MODELS DO PROJETO
+// =========================================================
+
+// === ENUMS (Regras de Negócio) ===
+
+// 1. Enum Role: Define as funções de acesso (MANAGER e EMPLOYEE)
+enum Role {
+  MANAGER
+  EMPLOYEE
+}
+// 2. Enum UserStatus: Define o status da conta (para forçar a troca de senha)
+enum UserStatus {
+  PENDING   // Conta nova, deve trocar a senha
+  ACTIVE    // Conta ativa e validada
+}
+
+// === MODELS ===
+
+// RF08: Entidade User (Usuário)
+model User {
+  // Campos de Controle
+  id        String     @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Campos de Identidade e Segurança
+  name      String     @default("Nome Não Definido")
+  email     String     @unique // E-mail deve ser único
+  
+  // Regra de Negócio: Matrícula é o identificador único e corporativo
+  registration    String     @unique 
+  
+  password  String     // Senha (armazenada como hash)
+  
+  // Permissões e Status (Regras de Segurança Máxima)
+  role      Role       @default(EMPLOYEE) 
+  status    UserStatus @default(PENDING) // Padrão: PENDENTE de primeira troca de senha
+
+  // Nome da tabela no banco de dados
+  @@map("user") 
+}
