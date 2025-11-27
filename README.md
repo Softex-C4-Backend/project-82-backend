@@ -1,11 +1,23 @@
 # project-82-backend
 
-Para rodar o projeto: 
-1. npm install
-2. cp .env.example .env
-3. docker-compose up -d
+PARA RODAR O PROJETO: 
+
+# 1. Instale as dependências
+  npm install
+# 2. Configure as variáveis de ambiente
+  cp .env.example .env
+# 3. Suba a infraestrutura (Banco de Dados)
+  docker-compose up -d
+# 4. Crie as tabelas no Banco (Migração)
+  npx prisma migrate dev
+# 5. Inicie o servidor
+  npm run dev 
+
 
 Explicação:
-1 - lê o arquivo package.json e instala todos os pacotes necessários para o funcionamento da aplicação Node.js (bibliotecas, frameworks, etc.)
-2 - Copia um arquivo de exemplo (.env.example) para .env, onde você pode colocar as configurações reais (como URL do banco, chave JWT, etc.) que sua aplicação vai usar em tempo de execução.
-3 - Inicia todos os serviços definidos no arquivo docker-compose.yml em modo “detached” (em segundo plano)
+1 - Lê o arquivo package.json e baixa todas as bibliotecas necessárias (Express, Prisma, Zod, etc.) para a pasta node_modules
+2 - Cria o seu arquivo de configuração local. O .env contém segredos (senhas, chaves) e nunca é enviado para o GitHub
+3 - Inicia o container do PostgreSQL em segundo plano. Atenção: Neste momento, o banco de dados liga, mas está vazio (sem tabelas)
+4 - Este é o comando que conecta no banco vazio e cria as tabelas (como a tabela User) baseadas no histórico da pasta prisma/migrations
+5 - Inicia o servidor Node.js/Express na porta 3001
+
