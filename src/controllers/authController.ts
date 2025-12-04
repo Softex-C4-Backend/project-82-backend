@@ -1,6 +1,6 @@
 
 import { Request, Response } from 'express';
-import { AuthService } from '../services/authService';
+import { AuthService } from '../services/AuthService';
 import { loginSchema } from '../schemas/authSchemas';
 import { ZodError } from 'zod';
 
