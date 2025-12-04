@@ -3,6 +3,8 @@ import express from 'express';
 import { prisma } from './database/prisma'; 
 // 2. Importa as rotas de autenticação
 import authRoutes from './routes/authRoutes';
+// 3. Importa as rotas de teste
+import testRoutes from './routes/testRoutes';
 
 const app = express();
 
@@ -12,6 +14,10 @@ app.use(express.json());
 // 3. Define o prefixo das rotas de Auth
 // Todas as rotas de authRoutes começam com /auth  Ex: /auth/login
 app.use('/auth', authRoutes);
+
+// Configura as rotas de Teste
+// Isso diz: "Tudo que começar com /test, mande para o arquivo testRoutes"
+app.use('/test', testRoutes);
 
 // Rota de saúde (Health Check)
 // Esta rota testa se a API está de pé E se o banco de dados está conectado.
