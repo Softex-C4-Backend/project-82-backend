@@ -59,15 +59,23 @@ model User {
 }
 
 
-// MODELO DE FORNECEDOR (Simples, Apenas para Relação - Futuro CRUD)
+// MODELO DE FORNECEDOR
 model Supplier {
-  id        String    @id @default(uuid())
-  name      String    @unique
-
-  // Campos de contato e CNPJ serão adicionados futuramente
-  products  Product[] // Relação 1:N com Product
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  name            String    @unique
+  cnpj            String?   // CNPJ é opcional no cadastro
+  contactEmail    String?   // E-mail para contato (opcional)
+  phone           String?   // Telefone de contato (opcional)
+  
+  // Informações de Endereço (Essenciais para logística)
+  street          String?
+  city            String?
+  state           String?
+  zipCode         String?   // CEP
+  
+  products        Product[] // Relação 1:N com Product
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 // MODELO DE CATEGORIA

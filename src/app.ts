@@ -13,6 +13,8 @@ import categoryRoutes from './routes/categoryRoutes';
 import utilRoutes from './routes/utilRoutes';
 // 7. Importa as rotas de Produto
 import productRoutes from './routes/productRoutes';
+// 8. Importa as rotas de Fornecedor
+import supplierRoutes from './routes/supplierRoutes';
 
 const app = express();
 
@@ -42,6 +44,10 @@ app.use('/utils', utilRoutes);
 // Configura as rotas de Produto
 // Tudo que começar com /products, mande para productRoutes
 app.use('/products', productRoutes);
+
+// Configura as rotas de Fornecedor
+// Tudo que começar com /suppliers, mande para supplierRoutes
+app.use('/suppliers', supplierRoutes);
 
 // Rota de saúde (Health Check)
 // Esta rota testa se a API está de pé E se o banco de dados está conectado.
