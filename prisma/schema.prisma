@@ -25,9 +25,16 @@ enum UserStatus {
   ACTIVE    // Conta ativa e validada
 }
 
+// 3. Enum UnitOfMeasure: A unidade de medida do produto
+enum UnitOfMeasure {
+  UNIT   // Unidade (ex: garrafa, lata)
+  KG     // Quilograma
+  LITER  // Litro
+}
+
 // === MODELS ===
 
-// RF08: Entidade User (Usuário)
+// Entidade User (Usuário)
 model User {
   // Campos de Controle
   id        String     @id @default(uuid())
@@ -49,4 +56,56 @@ model User {
 
   // Nome da tabela no banco de dados
   @@map("user") 
+}
+
+
+// MODELO DE FORNECEDOR (Simples, Apenas para Relação - Futuro CRUD)
+model Supplier {
+  id        String    @id @default(uuid())
+  name      String    @unique
+
+  // Campos de contato e CNPJ serão adicionados futuramente
+  products  Product[] // Relação 1:N com Product
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// MODELO DE CATEGORIA
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique // Ex: Hortifruti
+  description String?
+  products    Product[] // Relação 1:N com Product
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// MODELO DE PRODUTO
+model Product {
+  id              String          @id @default(uuid())
+  name            String
+  barcode         String          @unique // Código de barras deve ser único
+  description     String?
+  
+  // Dados Financeiros e de Estoque
+  price           Float
+  cost            Float?          // Custo é opcional
+  stockQuantity   Int             @default(0)
+  unitOfMeasure   UnitOfMeasure   // Exige uma unidade do nosso Enum
+
+  // Relacionamentos
+  categoryId      String
+  category        Category        @relation(fields: [categoryId], references: [id])
+  
+  // Supplier é OPCIONAL (supplierId?)
+  supplierId      String?         // FK para Fornecedor
+  supplier        Supplier?       @relation(fields: [supplierId], references: [id])
+
+  // Flags de Controle
+  isAvailable     Boolean         @default(true) // Disponível para venda
+  
+  // Futura relação com Lote virá aqui
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
