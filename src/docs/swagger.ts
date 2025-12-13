@@ -13,7 +13,7 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Project 82 API - Supermercado Cristo Rei',
+      title: 'Project 82 API - Supermercado Cristo Rei - Teste',
       version: '1.0.0',
       description: 'Documentação da API de Gestão de Estoque',
     },
