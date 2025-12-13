@@ -1,3 +1,4 @@
+import cors from 'cors';
 import express from 'express';                          // 1. Importa o Express
 import { prisma } from './database/prisma';             // 2. Importa o cliente Prisma  
 import authRoutes from './routes/authRoutes';           // 3. Importa as rotas de autenticação
@@ -14,6 +15,9 @@ import { swaggerSpec } from './docs/swagger';
 
 
 const app = express();
+
+// Middleware: Habilita o CORS para permitir requisições de outras origens
+app.use(cors());
 
 // Middleware: Permite que o Express leia o corpo das requisições como JSON
 app.use(express.json());
