@@ -9,10 +9,25 @@ services:
       POSTGRES_USER: project82_user
       POSTGRES_PASSWORD: project82_password
       POSTGRES_DB: project82_db
-    ports:
-      - "5432:5432"
+    # Removido o mapeamento de portas 5432:5432 para exposição externa (segurança)
+    
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  
+  api:
+    # O build vai usar o Dockerfile corrigido (Ação 1)
+    build: .
+    container_name: project82_api
+    restart: always
+    # Expõe a porta 3001 da API para o mundo
+    ports:
+      - "3001:3001"
+    # Garante que o banco suba antes da API
+    depends_on:
+      - postgres
+    # Diz para o container usar o arquivo .env (será criado na VPS)
+    env_file:
+      - .env
 
 volumes:
   postgres_data:

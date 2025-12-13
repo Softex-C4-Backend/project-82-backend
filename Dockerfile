@@ -6,8 +6,8 @@ WORKDIR /app
 
 # Copia os arquivos de dependências primeiro (para aproveitar o cache)
 COPY package*.json ./
-# Se você tiver a pasta prisma, descomente a linha abaixo
-COPY prisma ./prisma/
+# Garante que a pasta prisma seja copiada corretamente (correção de sintaxe para o Docker)
+COPY prisma/ ./prisma/
 
 # Instala as dependências
 RUN npm install
