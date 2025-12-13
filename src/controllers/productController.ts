@@ -18,6 +18,7 @@ const productSchema = z.object({
   stockQuantity: z.number().int('A quantidade em estoque deve ser um número inteiro.').min(0, 'Estoque não pode ser negativo.'),
   categoryId: z.string().uuid('O ID da categoria é inválido.'),
   supplierId: z.string().uuid('O ID do fornecedor é inválido.').optional(),
+  isAvailable: z.boolean().optional(),
   
   // Validação: Garante que a unidade de medida é um dos valores do nosso Enum
   unitOfMeasure: z.nativeEnum(UnitOfMeasure, {
