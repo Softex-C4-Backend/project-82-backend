@@ -6,6 +6,9 @@ import { supplierDocs } from './supplierDocs';
 import { productDocs } from './productDocs';
 import { utilsDocs } from './utilsDocs';
 
+// IP público da sua VPS
+const PRODUCTION_IP = '100.48.50.166'; 
+
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -15,6 +18,10 @@ const options = {
       description: 'Documentação da API de Gestão de Estoque',
     },
     servers: [
+      {
+        url: `http://${PRODUCTION_IP}:3001`,
+        description: 'Servidor de Produção (VPS)',
+      },
       {
         url: 'http://localhost:3001',
         description: 'Servidor Local',
