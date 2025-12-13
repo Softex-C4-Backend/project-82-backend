@@ -7,7 +7,7 @@ import { productDocs } from './productDocs';
 import { utilsDocs } from './utilsDocs';
 
 // IP público da sua VPS
-const PRODUCTION_IP = '100.48.50.166'; 
+// const PRODUCTION_IP = '100.48.50.166'; 
 
 const options = {
   definition: {
@@ -17,16 +17,16 @@ const options = {
       version: '1.0.0',
       description: 'Documentação da API de Gestão de Estoque',
     },
-    servers: [
-      {
-        url: `http://${PRODUCTION_IP}:3001`,
-        description: 'Servidor de Produção (VPS)',
-      },
-      {
-        url: 'http://localhost:3001',
-        description: 'Servidor Local',
-      },
-    ],
+    // servers: [
+    //   {
+    //     url: `http://${PRODUCTION_IP}:3001`,
+    //     description: 'Servidor de Produção (VPS)',
+    //   },
+    //   {
+    //     url: 'http://localhost:3001',
+    //     description: 'Servidor Local',
+    //   },
+    // ],
     // Configuração de Segurança (Para o botão Authorize funcionar com JWT)
     components: {
       securitySchemes: {
