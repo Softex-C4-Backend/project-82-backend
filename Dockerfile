@@ -1,12 +1,12 @@
-# Usa uma imagem leve do Node.js
-FROM node:20-alpine
+# Usa uma imagem Node.js baseada em Debian (mais compatível com Prisma)
+FROM node:20
 
 # Cria a pasta de trabalho dentro do container
 WORKDIR /app
 
 # Copia os arquivos de dependências primeiro (para aproveitar o cache)
 COPY package*.json ./
-# Garante que a pasta prisma seja copiada corretamente (correção de sintaxe para o Docker)
+# Garante que a pasta prisma seja copiada corretamente
 COPY prisma/ ./prisma/
 
 # Instala as dependências
