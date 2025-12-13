@@ -64,14 +64,14 @@ export class UserController {
   }
 
   // 5. ATUALIZAR (PUT /users/:id) - (Qualquer um logado)
-  async updateUser(req: Request, res: Response) {
+  async updateProfile(req: Request, res: Response) {
     try {
       const id = req.user?.userId; // Pegamos o ID do token (quem está logado)
       if (!id) return res.status(401).json({ message: 'Usuário não autenticado' });
 
       // Extraímos apenas o que é permitido editar (Nome e Email)
       const { name, email } = req.body;
-      const result = await userService.updateUser(id, { name, email });
+      const result = await userService.updateProfile(id, { name, email });
       return res.status(200).json(result);
     } catch (error) {
       return UserController.handleError(res, error);
@@ -88,6 +88,21 @@ export class UserController {
       return UserController.handleError(res, error);
     }
   }
+
+  // 7. USUARIO LOGADO PEGA SEU PRÓPRIO PERFIL (GET /users/profile) - (Qualquer um logado)
+  async getProfile(req: Request, res: Response) {
+    try {
+      const id = req.user?.userId;
+      if (!id) return res.status(401).json({ message: 'Usuário não autenticado' });
+
+      const result = await userService.getProfile(id);
+      return res.status(200).json(result);
+    } catch (error) {
+      return UserController.handleError(res, error);
+    }
+  }
+
+
 
   // --- MÉTODO AUXILIAR DE ERRO (DRY) ---
   // Centraliza a lógica de resposta de erro para não repetir código

@@ -14,7 +14,10 @@ const userController = new UserController();
 router.post('/change-password', authMiddleware, userController.changePassword);
 
 // Editar usuário (Qualquer um logado pode tentar editar)
-router.put('/profile', authMiddleware, userController.updateUser);
+router.put('/me', authMiddleware, userController.updateProfile);
+
+// Detalhes do próprio usuário logado
+router.get('/me', authMiddleware, userController.getProfile);
 
 
 // =========================================================
@@ -53,5 +56,7 @@ router.delete(
   authorizeRole(['MANAGER']), 
   userController.deleteUser
 );
+
+
 
 export default router;
