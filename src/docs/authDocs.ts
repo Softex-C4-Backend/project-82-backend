@@ -14,7 +14,7 @@ export const authDocs = {
                 identifier: {
                   type: 'string',
                   description: 'E-mail ou Matrícula',
-                  example: 'a@a.com',
+                  example: 'admin@admin.com',
                 },
                 password: {
                   type: 'string',
