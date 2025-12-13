@@ -13,12 +13,14 @@ services:
     # SEGURANÇA NA VPS:
     # Mantemos a porta comentada para que o banco NÃO fique 
     # acessível para a internet, apenas para a API internamente.
+    # Se for usar um serviço de banco local, descomente essa seção.
     # -----------------------------------------------------------
     # ports:
     #   - "5432:5432" 
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # Comentar essa seção se for usar um serviço de banco local
   api:
     build: .
     container_name: project82_api
