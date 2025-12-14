@@ -71,3 +71,7 @@ app.get('/', async (req, res) => {
 });
 // Exporta o objeto 'app' para que o server.ts consiga importá-lo!
 export { app };
+// Importa as rotas de Lote
+import { lotRoutes } from "./routes/lot.routes";
+
+app.use(lotRoutes);
