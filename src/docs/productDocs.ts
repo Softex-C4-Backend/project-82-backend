@@ -17,7 +17,7 @@ export const productDocs = {
                   properties: {
                     id: { type: 'string', format: 'uuid' },
                     name: { type: 'string' },
-                    barcode: { type: 'string' },
+                    code: { type: 'string' },
                     description: { type: 'string' },
                     price: { type: 'number', format: 'float' },
                     cost: { type: 'number', format: 'float' },
@@ -74,10 +74,10 @@ export const productDocs = {
           'application/json': {
             schema: {
               type: 'object',
-              required: ['name', 'barcode', 'price', 'stockQuantity','unitOfMeasure', 'categoryId'],
+              required: ['name', 'code', 'price', 'stockQuantity','unitOfMeasure', 'categoryId'],
               properties: {
                 name: { type: 'string', example: 'Arroz Branco 5kg' },
-                barcode: { type: 'string', example: '7891234567890' },
+                code: { type: 'string', example: '7891234567890' },
                 description: { type: 'string', example: 'Pacote de arroz tipo 1' },
                 price: { type: 'number', example: 25.90 },
                 cost: { type: 'number', example: 18.50 },
@@ -100,7 +100,7 @@ export const productDocs = {
                 properties: {
                   id: { type: 'string', format: 'uuid' },
                   name: { type: 'string' },
-                  barcode: { type: 'string' },
+                  code: { type: 'string' },
                   description: { type: 'string' },
                   price: { type: 'number', format: 'float' },
                   cost: { type: 'number', format: 'float' },
@@ -147,7 +147,7 @@ export const productDocs = {
                 properties: {
                   id: { type: 'string', format: 'uuid' },
                   name: { type: 'string' },
-                  barcode: { type: 'string' },
+                  code: { type: 'string' },
                   description: { type: 'string' },
                   price: { type: 'number', format: 'float' },
                   cost: { type: 'number', format: 'float' },
@@ -215,7 +215,7 @@ export const productDocs = {
               type: 'object',
               properties: {
                 name: { type: 'string', example: 'Novo nome' },
-                barcode: { type: 'string', example: '7891234567890' },
+                code: { type: 'string', example: '7891234567890' },
                 description: { type: 'string', example: 'Nova descrição' },
                 price: { type: 'number', example: 30.00 },
                 cost: { type: 'number', example: 20.00 },
@@ -239,7 +239,7 @@ export const productDocs = {
                 properties: {
                   id: { type: 'string', format: 'uuid' },
                   name: { type: 'string' },
-                  barcode: { type: 'string' },
+                  code: { type: 'string' },
                   description: { type: 'string' },
                   price: { type: 'number', format: 'float' },
                   cost: { type: 'number', format: 'float' },

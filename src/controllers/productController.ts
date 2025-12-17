@@ -11,7 +11,7 @@ const validUnitOfMeasures = Object.values(UnitOfMeasure);
 // Schema de validação Zod para os dados de Produto
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto deve ter no mínimo 3 caracteres.'),
-  barcode: z.string().min(5, 'O código de barras deve ter no mínimo 5 dígitos.'),
+  code: z.string().min(5, 'O código do produto deve ter no mínimo 5 dígitos.'),
   description: z.string().optional(),
   price: z.number().positive('O preço de venda deve ser um valor positivo.'),
   cost: z.number().optional().nullable(), // Aceita ser null/undefined

@@ -92,7 +92,7 @@ model Category {
 model Product {
   id              String          @id @default(uuid())
   name            String
-  barcode         String          @unique // Código de barras deve ser único
+  code            String          @unique // Código de barras deve ser único
   description     String?
   
   // Dados Financeiros e de Estoque

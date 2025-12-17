@@ -132,7 +132,7 @@ export const supplierDocs = {
                       properties: {
                         id: { type: 'string', format: 'uuid' },
                         name: { type: 'string' },
-                        barcode: { type: 'string' },
+                        code: { type: 'string' },
                       },
                     },
                   },

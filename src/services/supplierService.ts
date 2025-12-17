@@ -85,7 +85,7 @@ export class SupplierService {
       // Inclui a lista de produtos fornecidos
       include: {
         products: {
-          select: { id: true, name: true, barcode: true }
+          select: { id: true, name: true, code: true }
         }
       }
     });
