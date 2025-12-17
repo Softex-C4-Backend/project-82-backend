@@ -4,7 +4,7 @@ import { UnitOfMeasure } from '@prisma/client';
 // DTO para Criação
 interface CreateProductDTO {
   name: string;
-  barcode: string;
+  code: string;
   description?: string;
   price: number;
   cost?: number | null;
@@ -17,7 +17,7 @@ interface CreateProductDTO {
 // DTO para Atualização (Campos opcionais)
 interface UpdateProductDTO {
   name?: string;
-  barcode?: string;
+  code?: string;
   description?: string;
   price?: number;
   cost?: number | null;
@@ -32,12 +32,12 @@ export class ProductService {
 
   // --- 1. CRIAR PRODUTO ---
   async createProduct(data: CreateProductDTO) {
-    // 1.1. Validação de Código de Barras (Regra de Negócio: Deve ser Único)
-    const barcodeExists = await prisma.product.findUnique({
-      where: { barcode: data.barcode }
+    // 1.1. Validação de Código de Produto (Regra de Negócio: Deve ser Único)
+    const codeExists = await prisma.product.findUnique({
+      where: { code: data.code }
     });
-    if (barcodeExists) {
-      throw new Error('Código de barras já cadastrado para outro produto.');
+    if (codeExists) {
+      throw new Error('Código do produto já cadastrado para outro produto.');
     }
 
     // 1.2. Validação de Categoria (Regra de Negócio: Deve existir)
@@ -105,12 +105,12 @@ export class ProductService {
       throw new Error('Produto não encontrado.');
     }
 
-    // 4.2. Validação de Barcode (Se mudou, verifica duplicidade)
-    if (data.barcode && data.barcode !== existingProduct.barcode) {
-      const barcodeTaken = await prisma.product.findUnique({
-        where: { barcode: data.barcode }
+    // 4.2. Validação de Code (Se mudou, verifica duplicidade)
+    if (data.code && data.code !== existingProduct.code) {
+      const codeTaken = await prisma.product.findUnique({
+        where: { code: data.code }
       });
-      if (barcodeTaken) {
+      if (codeTaken) {
         throw new Error('Novo código de barras já está em uso.');
       }
     }
