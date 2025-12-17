@@ -76,6 +76,24 @@ export class ProductController {
     }
   }
 
+  // GET /products/code/:code
+  async getProductByCode(req: Request, res: Response) {
+    try {
+      const { code } = req.params;
+
+      // Sanitização simples
+      const codeSanitized = code?.trim();
+      if (!codeSanitized) {
+        return res.status(400).json({ message: 'Código do produto é obrigatório.' });
+      }
+
+      const result = await productService.findProductByCode(codeSanitized);
+      return res.status(200).json(result);
+    } catch (error) {
+      return handleError(res, error);
+    }
+  }
+
   // PUT /products/:id
   async updateProduct(req: Request, res: Response) {
     try {

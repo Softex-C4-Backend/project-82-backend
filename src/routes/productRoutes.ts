@@ -26,6 +26,14 @@ router.get(
   productController.getProduct
 );
 
+// Buscar produto por CÓDIGO
+router.get(
+  '/code/:code',
+  authMiddleware,
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  productController.getProductByCode
+);
+
 
 // =========================================================
 // GRUPO 2: Rotas de ESCRITA (Acesso APENAS para MANAGER)
