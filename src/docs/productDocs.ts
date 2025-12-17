@@ -308,4 +308,77 @@ export const productDocs = {
       },
     },
   },
+  '/products/code/{code}':{
+    // * BUSCA PRODUTO POR CÓDIGO
+    get: {
+      summary: 'Busca um produto pelo CÓDIGO de barras',
+      tags: ['Produtos'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'path',
+          name: 'code',
+          required: true,
+          schema: { type: 'string' },
+          description: 'CÓDIGO de barras do Produto',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Detalhes do produto',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  name: { type: 'string' },
+                  code: { type: 'string' },
+                  description: { type: 'string' },
+                  price: { type: 'number', format: 'float' },
+                  cost: { type: 'number', format: 'float' },
+                  stockQuantity: { type: 'integer'},
+                  unitOfMeasure: { type: 'string', enum: ['UNIT', 'KG', 'LITER'] },
+                  categoryId: { type: 'string', format: 'uuid' },
+                  supplierId: { type: 'string', format: 'uuid' },
+                  isAvailable: { type: 'boolean' },
+                  createdAt: { type: 'string', format: 'date-time' },
+                  updatedAt: { type: 'string', format: 'date-time' },
+                  category: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string', format: 'uuid' },
+                      name: { type: 'string' },
+                      description: { type: 'string' },
+                      createdAt: { type: 'string', format: 'date-time' },
+                      updatedAt: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                  supplier: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string', format: 'uuid' },
+                      name: { type: 'string' },
+                      cnpj: { type: 'string' },
+                      contactEmail: { type: 'string', format: 'email' },
+                      phone: { type: 'string' },
+                      street: { type: 'string' },
+                      city: { type: 'string' },
+                      state: { type: 'string' },
+                      zipCode: { type: 'string' },
+                      createdAt: { type: 'string', format: 'date-time' },
+                      updatedAt: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Código inválido' },
+        401: { description: 'Não autorizado' },
+        404: { description: 'Produto não encontrado' },
+      },
+    }
+  },
 };

@@ -97,15 +97,32 @@ export class ProductService {
     return product;
   }
 
-  // --- 4. ATUALIZAR PRODUTO ---
+  // --- 4. BUSCAR PRODUTO POR CÓDIGO ---
+  async findProductByCode(code: string) {
+    const product = await prisma.product.findUnique({
+      where: { code },
+      include: {
+        category: true,
+        supplier: true,
+      }
+    });
+
+    if (!product) {
+      throw new Error('Produto não encontrado.');
+    }
+
+    return product;
+  }
+
+  // --- 5. ATUALIZAR PRODUTO ---
   async updateProduct(id: string, data: UpdateProductDTO) {
-    // 4.1. Verifica se o produto existe
+    // 5.1. Verifica se o produto existe
     const existingProduct = await prisma.product.findUnique({ where: { id } });
     if (!existingProduct) {
       throw new Error('Produto não encontrado.');
     }
 
-    // 4.2. Validação de Code (Se mudou, verifica duplicidade)
+    // 5.2. Validação de Code (Se mudou, verifica duplicidade)
     if (data.code && data.code !== existingProduct.code) {
       const codeTaken = await prisma.product.findUnique({
         where: { code: data.code }
@@ -115,15 +132,15 @@ export class ProductService {
       }
     }
 
-    // 4.3. Validação de Categoria
+    // 5.3. Validação de Categoria
     if (data.categoryId) {
       const categoryExists = await prisma.category.findUnique({ where: { id: data.categoryId } });
       if (!categoryExists) {
         throw new Error('Nova categoria não encontrada ou inválida.');
       }
     }
-    
-    // 4.4. Validação de Fornecedor
+
+    // 5.4. Validação de Fornecedor
     if (data.supplierId) {
         const supplierExists = await prisma.supplier.findUnique({ where: { id: data.supplierId } });
         if (!supplierExists) {
@@ -131,7 +148,7 @@ export class ProductService {
         }
     }
 
-    // 4.5. Atualização
+    // 5.5. Atualização
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: data,
@@ -144,7 +161,7 @@ export class ProductService {
     return updatedProduct;
   }
 
-  // --- 5. DELETAR PRODUTO ---
+  // --- 6. DELETAR PRODUTO ---
   async deleteProduct(id: string) {
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
