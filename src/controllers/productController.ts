@@ -11,13 +11,13 @@ const validUnitOfMeasures = Object.values(UnitOfMeasure);
 // Schema de validação Zod para os dados de Produto
 const productSchema = z.object({
   name: z.string().min(3, 'O nome do produto deve ter no mínimo 3 caracteres.'),
-  barcode: z.string().min(5, 'O código de barras deve ter no mínimo 5 dígitos.'),
+  code: z.string().min(5, 'O código do produto deve ter no mínimo 5 dígitos.'),
   description: z.string().optional(),
   price: z.number().positive('O preço de venda deve ser um valor positivo.'),
   cost: z.number().optional().nullable(), // Aceita ser null/undefined
-  stockQuantity: z.number().int('A quantidade em estoque deve ser um número inteiro.').min(0, 'Estoque não pode ser negativo.'),
   categoryId: z.string().uuid('O ID da categoria é inválido.'),
   supplierId: z.string().uuid('O ID do fornecedor é inválido.').optional(),
+  isAvailable: z.boolean().optional(),
   
   // Validação: Garante que a unidade de medida é um dos valores do nosso Enum
   unitOfMeasure: z.nativeEnum(UnitOfMeasure, {
@@ -69,6 +69,24 @@ export class ProductController {
     try {
       const { id } = req.params;
       const result = await productService.findProductById(id);
+      return res.status(200).json(result);
+    } catch (error) {
+      return handleError(res, error);
+    }
+  }
+
+  // GET /products/code/:code
+  async getProductByCode(req: Request, res: Response) {
+    try {
+      const { code } = req.params;
+
+      // Sanitização simples
+      const codeSanitized = code?.trim();
+      if (!codeSanitized) {
+        return res.status(400).json({ message: 'Código do produto é obrigatório.' });
+      }
+
+      const result = await productService.findProductByCode(codeSanitized);
       return res.status(200).json(result);
     } catch (error) {
       return handleError(res, error);

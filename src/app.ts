@@ -1,26 +1,32 @@
-import express from 'express';
-// 1. Importa a conexão com o banco para testar se ele está ligado
-import { prisma } from './database/prisma'; 
-// 2. Importa as rotas de autenticação
-import authRoutes from './routes/authRoutes';
-// 3. Importa as rotas de teste
-import testRoutes from './routes/testRoutes';
-// 4. Importa as rotas de usuário
-import userRoutes from './routes/userRoutes';
-// 5. Importa as rotas de categoria
-import categoryRoutes from './routes/categoryRoutes';
-// 6. Importa as rotas de utilidades
-import utilRoutes from './routes/utilRoutes';
-// 7. Importa as rotas de Produto
-import productRoutes from './routes/productRoutes';
-// 8. Importa as rotas de Fornecedor
-import supplierRoutes from './routes/supplierRoutes';
+import cors from 'cors';
+import express from 'express';                          // 1. Importa o Express
+import { prisma } from './database/prisma';             // 2. Importa o cliente Prisma  
+import authRoutes from './routes/authRoutes';           // 3. Importa as rotas de autenticação
+import testRoutes from './routes/testRoutes';           // 4. Importa as rotas de teste
+import userRoutes from './routes/userRoutes';           // 5. Importa as rotas de usuário
+import categoryRoutes from './routes/categoryRoutes';   // 6. Importa as rotas de categoria   
+import utilRoutes from './routes/utilRoutes';           // 7. Importa as rotas de utilidades
+import productRoutes from './routes/productRoutes';     // 8. Importa as rotas de Produto
+import supplierRoutes from './routes/supplierRoutes';   // 9. Importa as rotas de Fornecedor
+
+// --- IMPORTS DO SWAGGER ---
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './docs/swagger';
+
 
 const app = express();
+
+// Middleware: Habilita o CORS para permitir requisições de outras origens
+app.use(cors());
 
 // Middleware: Permite que o Express leia o corpo das requisições como JSON
 app.use(express.json());
 
+// --- ROTA DA DOCUMENTAÇÃO ---
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+
+// --- ROTAS DE APLICAÇÃO ---
 // Define o prefixo das rotas de Auth
 // Todas as rotas de authRoutes começam com /auth  Ex: /auth/login
 app.use('/auth', authRoutes);
@@ -49,16 +55,16 @@ app.use('/products', productRoutes);
 // Tudo que começar com /suppliers, mande para supplierRoutes
 app.use('/suppliers', supplierRoutes);
 
-// Rota de saúde (Health Check)
+// --- ROTA DE TESTE DE CONEXÃO ---
 // Esta rota testa se a API está de pé E se o banco de dados está conectado.
 app.get('/', async (req, res) => {
   try {
     // 2. Tenta fazer uma query simples para verificar a conexão com o banco
     await prisma.$queryRaw`SELECT 1`;
-    
     // Se a query funcionar, retorna 200 OK
     res.status(200).send({ 
       message: 'API Project 82 está online.',
+      docs: 'http://localhost:3001/api-docs', // Link clicável para facilitar o acesso à documentação
       database: 'Conexão OK' 
     });
   } catch (error) {
@@ -69,6 +75,7 @@ app.get('/', async (req, res) => {
     });
   }
 });
+
 // Exporta o objeto 'app' para que o server.ts consiga importá-lo!
 export { app };
 // Importa as rotas de Lote

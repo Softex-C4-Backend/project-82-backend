@@ -9,10 +9,31 @@ services:
       POSTGRES_USER: project82_user
       POSTGRES_PASSWORD: project82_password
       POSTGRES_DB: project82_db
-    ports:
-      - "5432:5432"
+    # -----------------------------------------------------------
+    # SEGURANÇA NA VPS:
+    # Mantemos a porta comentada para que o banco NÃO fique 
+    # acessível para a internet, apenas para a API internamente.
+    # Se for usar um serviço de banco local, descomente essa seção.
+    # -----------------------------------------------------------
+    # ports:
+    #   - "5432:5432" 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  # Comentar essa seção se for usar um serviço de banco local
+  api:
+    build: .
+    container_name: project82_api
+    restart: always
+    # Expõe a porta 3001 da API para o mundo (Internet)
+    ports:
+      - "3001:3001"
+    # Garante que o banco suba antes da API
+    depends_on:
+      - postgres
+    # Diz para o container usar o arquivo .env (que criaremos na VPS)
+    env_file:
+      - .env
 
 volumes:
   postgres_data:

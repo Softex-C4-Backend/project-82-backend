@@ -131,7 +131,7 @@ export class UserService {
   }
 
 // --- 5. ATUALIZAR (UPDATE) ---
-  async updateUser(id: string, data: UpdateUserDTO) {
+  async updateProfile(id: string, data: UpdateUserDTO) {
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) throw new Error('Usuário não encontrado.');
 
@@ -160,5 +160,13 @@ export class UserService {
     await prisma.user.delete({ where: { id } });
 
     return { message: 'Usuário removido com sucesso.' };
+  }
+
+// --- 7. USUARIO LOGADO PEGA SEU PRÓPRIO PERFIL ---
+  async getProfile(userId: string) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error('Usuário não encontrado.');
+
+    return this.removePassword(user);
   }
 }
