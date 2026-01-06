@@ -18,20 +18,20 @@ router.get(
   productController.listProducts
 );
 
-// Buscar produto por ID
-router.get(
-  '/:id',
-  authMiddleware,
-  authorizeRole(['MANAGER', 'EMPLOYEE']),
-  productController.getProduct
-);
-
 // Buscar produto por CÓDIGO
 router.get(
   '/code/:code',
   authMiddleware,
   authorizeRole(['MANAGER', 'EMPLOYEE']),
   productController.getProductByCode
+);
+
+// Buscar produto por ID
+router.get(
+  '/:id',
+  authMiddleware,
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  productController.getProduct
 );
 
 

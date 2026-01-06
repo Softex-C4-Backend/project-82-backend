@@ -74,14 +74,13 @@ export const productDocs = {
           'application/json': {
             schema: {
               type: 'object',
-              required: ['name', 'code', 'price', 'stockQuantity','unitOfMeasure', 'categoryId'],
+              required: ['name', 'code', 'price', 'unitOfMeasure', 'categoryId'],
               properties: {
                 name: { type: 'string', example: 'Arroz Branco 5kg' },
                 code: { type: 'string', example: '7891234567890' },
                 description: { type: 'string', example: 'Pacote de arroz tipo 1' },
                 price: { type: 'number', example: 25.90 },
                 cost: { type: 'number', example: 18.50 },
-                stockQuantity: { type: 'integer', example: 100 },
                 unitOfMeasure: { type: 'string', enum: ['UNIT', 'KG', 'LITER'], example: 'KG' },
                 categoryId: { type: 'string', format: 'uuid', example: 'uuid-da-categoria' },
                 supplierId: { type: 'string', format: 'uuid', example: 'uuid-do-fornecedor' },
@@ -219,7 +218,6 @@ export const productDocs = {
                 description: { type: 'string', example: 'Nova descrição' },
                 price: { type: 'number', example: 30.00 },
                 cost: { type: 'number', example: 20.00 },
-                stockQuantity: { type: 'integer', example: 150 },
                 unitOfMeasure: { type: 'string', enum: ['UNIT', 'KG', 'LITER'], example: 'UNIT' },
                 categoryId: { type: 'string', format: 'uuid', example: 'uuid-da-nova-categoria' },
                 supplierId: { type: 'string', format: 'uuid', example: 'uuid-do-novo-fornecedor' },
@@ -311,7 +309,7 @@ export const productDocs = {
   '/products/code/{code}':{
     // * BUSCA PRODUTO POR CÓDIGO
     get: {
-      summary: 'Busca um produto pelo CÓDIGO de barras',
+      summary: 'Busca um produto pelo código (code)',
       tags: ['Produtos'],
       security: [{ bearerAuth: [] }],
       parameters: [

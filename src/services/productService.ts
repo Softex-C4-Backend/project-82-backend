@@ -8,7 +8,6 @@ interface CreateProductDTO {
   description?: string;
   price: number;
   cost?: number | null;
-  stockQuantity: number;
   unitOfMeasure: UnitOfMeasure;
   categoryId: string;
   supplierId?: string;
@@ -21,7 +20,6 @@ interface UpdateProductDTO {
   description?: string;
   price?: number;
   cost?: number | null;
-  stockQuantity?: number;
   unitOfMeasure?: UnitOfMeasure;
   categoryId?: string;
   supplierId?: string;
@@ -62,8 +60,8 @@ export class ProductService {
     const product = await prisma.product.create({
       data: {
         ...data,
-        // Garante que o custo seja zero se não for informado
-        cost: data.cost ?? 0, 
+        stockQuantity: 0,  // Inicializa a quantidade em estoque como 0
+        cost: data.cost ?? 0, // Garante que o custo seja zero se não for informado
       },
     });
 
@@ -116,13 +114,16 @@ export class ProductService {
 
   // --- 5. ATUALIZAR PRODUTO ---
   async updateProduct(id: string, data: UpdateProductDTO) {
-    // 5.1. Verifica se o produto existe
+    // 5.1. Regra de Negócio: Não permite alterar a quantidade em estoque via produto
+    if ('stockQuantity' in data) throw new Error('O estoque não pode ser alterado pelo produto. Use Lotes.');
+    
+    // 5.2. Verifica se o produto existe
     const existingProduct = await prisma.product.findUnique({ where: { id } });
     if (!existingProduct) {
       throw new Error('Produto não encontrado.');
     }
 
-    // 5.2. Validação de Code (Se mudou, verifica duplicidade)
+    // 5.3. Validação de Code (Se mudou, verifica duplicidade)
     if (data.code && data.code !== existingProduct.code) {
       const codeTaken = await prisma.product.findUnique({
         where: { code: data.code }
@@ -132,7 +133,7 @@ export class ProductService {
       }
     }
 
-    // 5.3. Validação de Categoria
+    // 5.4. Validação de Categoria
     if (data.categoryId) {
       const categoryExists = await prisma.category.findUnique({ where: { id: data.categoryId } });
       if (!categoryExists) {
@@ -140,7 +141,7 @@ export class ProductService {
       }
     }
 
-    // 5.4. Validação de Fornecedor
+    // 5.5. Validação de Fornecedor
     if (data.supplierId) {
         const supplierExists = await prisma.supplier.findUnique({ where: { id: data.supplierId } });
         if (!supplierExists) {
@@ -148,7 +149,7 @@ export class ProductService {
         }
     }
 
-    // 5.5. Atualização
+    // 5.6. Atualização
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: data,
@@ -168,7 +169,18 @@ export class ProductService {
       throw new Error('Produto não encontrado.');
     }
 
-    // Regra: Deleta o produto (não há dependências complexas ainda como vendas)
+    // Regra 1: Não deixa deletar se houver estoque
+    if (product.stockQuantity > 0) {
+      throw new Error('Não é possível deletar um produto com estoque. Zere o estoque via Lotes.');
+    }
+
+    // Regra 2: Não deixa deletar se houver lotes vinculados (quando o model Batch existir)
+    // const batchesCount = await prisma.batch.count({ where: { productId: id } });
+    // if (batchesCount > 0) {
+    //   throw new Error(`Não é possível deletar. Existem ${batchesCount} lotes vinculados a este produto.`);
+    // }  
+
+    // Regra 3: Deleta o produto (não há dependências complexas ainda como vendas)
     await prisma.product.delete({ where: { id } });
 
     return { message: 'Produto removido com sucesso.' };
