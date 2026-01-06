@@ -15,7 +15,6 @@ const productSchema = z.object({
   description: z.string().optional(),
   price: z.number().positive('O preço de venda deve ser um valor positivo.'),
   cost: z.number().optional().nullable(), // Aceita ser null/undefined
-  stockQuantity: z.number().int('A quantidade em estoque deve ser um número inteiro.').min(0, 'Estoque não pode ser negativo.'),
   categoryId: z.string().uuid('O ID da categoria é inválido.'),
   supplierId: z.string().uuid('O ID do fornecedor é inválido.').optional(),
   isAvailable: z.boolean().optional(),
