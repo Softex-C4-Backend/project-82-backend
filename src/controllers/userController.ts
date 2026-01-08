@@ -102,6 +102,21 @@ export class UserController {
     }
   }
 
+  // 8. BUSCAR/FILTRAR USUÁRIOS (GET /users/search?query=...) - (Apenas Manager)
+  async searchUsers(req: Request, res: Response) {
+    try {
+      const { query } = req.query;
+      if (typeof query !== 'string' || query.trim() === '') {
+        return res.status(400).json({ message: 'Parâmetro de busca inválido.' });
+      }
+
+      const result = await userService.searchUsers(query);
+      return res.status(200).json(result);
+    } catch (error) {
+      return UserController.handleError(res, error);
+    }
+  }
+
 
 
   // --- MÉTODO AUXILIAR DE ERRO (DRY) ---

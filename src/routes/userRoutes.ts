@@ -41,6 +41,14 @@ router.get(
   userController.listUsers
 );
 
+// Busca de Usuários 
+router.get(
+  '/search',
+  authMiddleware,
+  authorizeRole(['MANAGER']),
+  userController.searchUsers
+);
+
 // Buscar detalhes de um usuário específico por ID
 router.get(
   '/:id', 
