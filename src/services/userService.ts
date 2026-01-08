@@ -169,4 +169,20 @@ export class UserService {
 
     return this.removePassword(user);
   }
+
+// --- 8. BUSCAR/FILTRAR USUÁRIOS (SEARCH) ---
+  async searchUsers(query: string) {
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+          { registration: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    return users.map(user => this.removePassword(user));
+  }
 }

@@ -162,6 +162,50 @@ export const usersDocs = {
     },
   },
 
+  '/users/search': {
+    // * BUSCA USUÁRIOS POR NOME, E-MAIL OU MATRÍCULA (Apenas Manager)
+    get: {
+      summary: 'Busca usuários por nome, e-mail ou matrícula (Apenas Manager)',
+      tags: ['Usuários'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'query',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Termo de busca para nome, e-mail ou matrícula',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Lista de usuários que correspondem à busca',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    name: { type: 'string' },
+                    email: { type: 'string', format: 'email' },
+                    registration: { type: 'string' },
+                    role: { type: 'string', enum: ['MANAGER', 'EMPLOYEE'] },
+                    status: { type: 'string', enum: ['ACTIVE', 'PENDING'] },
+                    createdAt: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Parâmetro de busca inválido' },
+        403: { description: 'Acesso negado (Não é Manager)'},
+      },
+    },
+  },
+
   '/users/{id}': {
     // * BUSCA USUÁRIO POR ID (Apenas Manager)
     get: {
