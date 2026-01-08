@@ -19,17 +19,18 @@ enum Role {
   MANAGER
   EMPLOYEE
 }
+
 // 2. Enum UserStatus: Define o status da conta (para forçar a troca de senha)
 enum UserStatus {
-  PENDING   // Conta nova, deve trocar a senha
-  ACTIVE    // Conta ativa e validada
+  PENDING // Conta nova, deve trocar a senha
+  ACTIVE // Conta ativa e validada
 }
 
 // 3. Enum UnitOfMeasure: A unidade de medida do produto
 enum UnitOfMeasure {
-  UNIT   // Unidade (ex: garrafa, lata)
-  KG     // Quilograma
-  LITER  // Litro
+  UNIT // Unidade (ex: garrafa, lata)
+  KG // Quilograma
+  LITER // Litro
 }
 
 // === MODELS ===
@@ -37,45 +38,44 @@ enum UnitOfMeasure {
 // Entidade User (Usuário)
 model User {
   // Campos de Controle
-  id        String     @id @default(uuid())
+  id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Campos de Identidade e Segurança
-  name      String     @default("Nome Não Definido")
-  email     String     @unique // E-mail deve ser único
-  
+  name  String @default("Nome Não Definido")
+  email String @unique // E-mail deve ser único
+
   // Regra de Negócio: Matrícula é o identificador único e corporativo
-  registration    String     @unique 
-  
-  password  String     // Senha (armazenada como hash)
-  
+  registration String @unique
+
+  password String // Senha (armazenada como hash)
+
   // Permissões e Status (Regras de Segurança Máxima)
-  role      Role       @default(EMPLOYEE) 
-  status    UserStatus @default(PENDING) // Padrão: PENDENTE de primeira troca de senha
+  role   Role       @default(EMPLOYEE)
+  status UserStatus @default(PENDING) // Padrão: PENDENTE de primeira troca de senha
 
   // Nome da tabela no banco de dados
-  @@map("user") 
+  @@map("user")
 }
-
 
 // MODELO DE FORNECEDOR
 model Supplier {
-  id              String    @id @default(uuid())
-  name            String    @unique
-  cnpj            String?   // CNPJ é opcional no cadastro
-  contactEmail    String?   // E-mail para contato (opcional)
-  phone           String?   // Telefone de contato (opcional)
-  
+  id           String  @id @default(uuid())
+  name         String  @unique
+  cnpj         String? // CNPJ é opcional no cadastro
+  contactEmail String? // E-mail para contato (opcional)
+  phone        String? // Telefone de contato (opcional)
+
   // Informações de Endereço (Essenciais para logística)
-  street          String?
-  city            String?
-  state           String?
-  zipCode         String?   // CEP
-  
-  products        Product[] // Relação 1:N com Product
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  street  String?
+  city    String?
+  state   String?
+  zipCode String? // CEP
+
+  products  Product[] // Relação 1:N com Product
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 // MODELO DE CATEGORIA
@@ -96,24 +96,48 @@ model Product {
   description     String?
   
   // Dados Financeiros e de Estoque
-  price           Float
-  cost            Float?          // Custo é opcional
-  stockQuantity   Int             @default(0)
-  unitOfMeasure   UnitOfMeasure   // Exige uma unidade do nosso Enum
+  price           Decimal        @db.Decimal(10, 2)
+  cost            Decimal?       @db.Decimal(10, 2)
+  stockQuantity   Int           @default(0)
+  unitOfMeasure   UnitOfMeasure // Exige uma unidade do nosso Enum
 
   // Relacionamentos
   categoryId      String
-  category        Category        @relation(fields: [categoryId], references: [id])
-  
+  category        Category @relation(fields: [categoryId], references: [id])
+
   // Supplier é OPCIONAL (supplierId?)
-  supplierId      String?         // FK para Fornecedor
-  supplier        Supplier?       @relation(fields: [supplierId], references: [id])
+  supplierId      String? // FK para Fornecedor
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
 
   // Flags de Controle
-  isAvailable     Boolean         @default(true) // Disponível para venda
-  
-  // Futura relação com Lote virá aqui
-  
+  isAvailable Boolean @default(true) // Disponível para venda
+
+  // Batches (Lotes)
+  batches         Batch[]
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+}
+
+
+// MODELO DE LOTE
+model Batch {
+  id                String    @id @default(uuid())
+
+  // Relacionamento
+  productId          String
+  product            Product   @relation(fields: [productId], references: [id])
+
+  // Dados do Lote  
+  code               String?    // opcional: identificador do lote/remessa
+  receivedDate       DateTime?  @default(now())
+  expirationDate     DateTime   // vencimento
+  initialQuantity    Int        // quantidade que entrou
+  currentQuantity    Int        // quantidade restante (para futuras vendas/baixa por vencimento)
+  unitCost           Decimal   @db.Decimal(10, 2)
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([productId, expirationDate])
 }

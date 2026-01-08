@@ -8,6 +8,7 @@ import categoryRoutes from './routes/categoryRoutes';   // 6. Importa as rotas d
 import utilRoutes from './routes/utilRoutes';           // 7. Importa as rotas de utilidades
 import productRoutes from './routes/productRoutes';     // 8. Importa as rotas de Produto
 import supplierRoutes from './routes/supplierRoutes';   // 9. Importa as rotas de Fornecedor
+import batchRoutes from './routes/batchRoutes';         // 10. Importa as rotas de Lote
 
 // --- IMPORTS DO SWAGGER ---
 import swaggerUi from 'swagger-ui-express';
@@ -54,6 +55,10 @@ app.use('/products', productRoutes);
 // Configura as rotas de Fornecedor
 // Tudo que começar com /suppliers, mande para supplierRoutes
 app.use('/suppliers', supplierRoutes);
+
+// Configura as rotas de Lote
+// Tudo que começar com /batches, mande para batchRoutes
+app.use('/batches', batchRoutes);
 
 // --- ROTA DE TESTE DE CONEXÃO ---
 // Esta rota testa se a API está de pé E se o banco de dados está conectado.

@@ -7,7 +7,6 @@ interface CreateProductDTO {
   code: string;
   description?: string;
   price: number;
-  cost?: number | null;
   unitOfMeasure: UnitOfMeasure;
   categoryId: string;
   supplierId?: string;
@@ -61,7 +60,7 @@ export class ProductService {
       data: {
         ...data,
         stockQuantity: 0,  // Inicializa a quantidade em estoque como 0
-        cost: data.cost ?? 0, // Garante que o custo seja zero se não for informado
+        cost: null,
       },
     });
 
@@ -175,10 +174,10 @@ export class ProductService {
     }
 
     // Regra 2: Não deixa deletar se houver lotes vinculados (quando o model Batch existir)
-    // const batchesCount = await prisma.batch.count({ where: { productId: id } });
-    // if (batchesCount > 0) {
-    //   throw new Error(`Não é possível deletar. Existem ${batchesCount} lotes vinculados a este produto.`);
-    // }  
+    const batchesCount = await prisma.batch.count({ where: { productId: id } });
+    if (batchesCount > 0) {
+      throw new Error(`Não é possível deletar. Existem ${batchesCount} lotes vinculados a este produto.`);
+    }  
 
     // Regra 3: Deleta o produto (não há dependências complexas ainda como vendas)
     await prisma.product.delete({ where: { id } });

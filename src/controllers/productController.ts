@@ -14,7 +14,6 @@ const productSchema = z.object({
   code: z.string().min(5, 'O código do produto deve ter no mínimo 5 dígitos.'),
   description: z.string().optional(),
   price: z.number().positive('O preço de venda deve ser um valor positivo.'),
-  cost: z.number().optional().nullable(), // Aceita ser null/undefined
   categoryId: z.string().uuid('O ID da categoria é inválido.'),
   supplierId: z.string().uuid('O ID do fornecedor é inválido.').optional(),
   isAvailable: z.boolean().optional(),
