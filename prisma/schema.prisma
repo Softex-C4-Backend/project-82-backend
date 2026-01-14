@@ -115,6 +115,9 @@ model Product {
   // Batches (Lotes)
   batches         Batch[]
 
+  // Promotions (Promoções)
+  promotions      Promotion[]
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 }
@@ -140,4 +143,25 @@ model Batch {
   updatedAt          DateTime  @updatedAt
 
   @@index([productId, expirationDate])
+}
+
+// MODELO DE PROMOÇÃO
+model Promotion {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  discountType  String   // "PERCENTAGE" ou "FIXED_VALUE"
+  discountValue Decimal  @db.Decimal(10, 2)
+  startDate     DateTime
+  endDate       DateTime
+  isActive      Boolean  @default(true)
+
+  // Relacionamento com Produto
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("promotion")
 }
