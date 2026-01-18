@@ -6,7 +6,7 @@ import { supplierDocs } from './supplierDocs';
 import { productDocs } from './productDocs';
 import { batchDocs } from './batchDocs';
 import { utilsDocs } from './utilsDocs';
-import { promotionDocs } from './promotionDocs';
+import { saleDocs } from './saleDocs';
 
 const options = {
   definition: {
@@ -34,8 +34,8 @@ const options = {
       ...supplierDocs,
       ...productDocs,
       ...batchDocs,
+      ...saleDocs,
       ...utilsDocs,
-      ...promotionDocs,
     },
   },
   apis: [], 

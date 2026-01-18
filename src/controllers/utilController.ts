@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-// @ts-ignore
 import { UnitOfMeasure } from '@prisma/client';
 
 export class UtilController {
