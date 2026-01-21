@@ -133,6 +133,9 @@ model Product {
   // Itens de Venda
   saleItems       SaleItem[]
 
+  // Promotions (Promoções)
+  promotions      Promotion[]
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 }

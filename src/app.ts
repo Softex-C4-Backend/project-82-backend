@@ -10,6 +10,7 @@ import productRoutes from './routes/productRoutes';     // 8. Importa as rotas d
 import supplierRoutes from './routes/supplierRoutes';   // 9. Importa as rotas de Fornecedor
 import batchRoutes from './routes/batchRoutes';         // 10. Importa as rotas de Lote
 import saleRoutes from './routes/saleRoutes';           // 11. Importa as rotas de Venda (PDV)
+import promotionRoutes from './routes/promotionRoutes'; // 12. Importa as rotas de Promoção
 
 // --- IMPORTS DO SWAGGER ---
 import swaggerUi from 'swagger-ui-express';
@@ -64,6 +65,10 @@ app.use('/batches', batchRoutes);
 // Configura as rotas de Venda (PDV)
 // Tudo que começar com /sales, mande para saleRoutes
 app.use('/sales', saleRoutes);
+
+// Configura as rotas de Promoção
+// Tudo que começar com /promotions, mande para promotionRoutes
+app.use('/promotions', promotionRoutes);
 
 // --- ROTA DE TESTE DE CONEXÃO ---
 // Esta rota testa se a API está de pé E se o banco de dados está conectado.

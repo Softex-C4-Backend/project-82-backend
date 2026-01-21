@@ -7,6 +7,7 @@ import { productDocs } from './productDocs';
 import { batchDocs } from './batchDocs';
 import { utilsDocs } from './utilsDocs';
 import { saleDocs } from './saleDocs';
+import { promotionDocs } from './promotionDocs';
 
 const options = {
   definition: {
@@ -36,6 +37,7 @@ const options = {
       ...batchDocs,
       ...saleDocs,
       ...utilsDocs,
+      ...promotionDocs,
     },
   },
   apis: [], 
