@@ -5,69 +5,52 @@ import { PaymentMethod } from '@prisma/client';
 
 const saleService = new SaleService();
 
-// Get valid payment methods from Prisma Enum
-const validPaymentMethods = Object.values(PaymentMethod);
-
-// Schema de validação Zod para Item de Venda
-const saleItemSchema = z.object({
-  productId: z.string().uuid('O ID do produto é inválido.'),
-  quantity: z.coerce.number().positive('A quantidade deve ser um valor positivo.')
-});
-
-// Schema de validação Zod para Criação de Venda
 const createSaleSchema = z.object({
-  items: z.array(saleItemSchema).min(1, 'Uma venda deve conter pelo menos um item.'),
-  paymentMethod: z.enum(validPaymentMethods as [string, ...string[]], {
-    errorMap: () => ({
-      message: `Método de pagamento inválido. Deve ser um dos seguintes: ${validPaymentMethods.join(', ')}`
+  paymentMethod: z.nativeEnum(PaymentMethod, {
+    errorMap: () => ({ message: 'Método de pagamento inválido.' }),
+  }),
+  items: z.array(
+    z.object({
+      productId: z.string().uuid('ID de produto inválido.'),
+      quantity: z.coerce.number().int().positive('A quantidade deve ser um número inteiro positivo.'),
     })
-  })
+  ).min(1, 'A venda deve conter pelo menos um produto.'),
 });
 
-// Tipo inferido do Zod
-type CreateSaleInput = z.infer<typeof createSaleSchema>;
+const cancelSaleSchema = z.object({
+  reason: z.string().min(5, 'O motivo do cancelamento deve ter no mínimo 5 caracteres.'),
+});
 
-// === NORMALIZADOR DE ERROS ===
-// Remove acentos e converte para minúsculas para comparações
-const normalizeError = (text: string): string => {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
-};
-
-// Reutiliza o manipulador de erros que centraliza a lógica de 400, 404 e 500
 const handleError = (res: Response, error: any) => {
   if (error instanceof ZodError) {
-    return res.status(400).json({ message: 'Dados de entrada inválidos', errors: error.errors });
+    return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
   }
-
+  
   if (error instanceof Error) {
-    const normalizedMessage = normalizeError(error.message);
+    const normalize = (s: string) => 
+      s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-    // Verifica se o erro é de estoque insuficiente ou produto não encontrado (404)
-    if (
-      normalizedMessage.includes('nao encontrado') ||
-      normalizedMessage.includes('invalido') ||
-      normalizedMessage.includes('nao esta disponivel')
-    ) {
+    const msg = normalize(error.message);
+
+    // 404 apenas para o que REALMENTE não existe
+    if (msg.includes('nao encontrado') || msg.includes('invalid')) {
       return res.status(404).json({ message: error.message });
     }
 
-    // Erros de estoque insuficiente são 400 (Bad Request)
-    if (normalizedMessage.includes('quantidade insuficiente') || normalizedMessage.includes('nenhum lote')) {
+    // 400 para erros de lógica de negócio (Estoque, Produto Inativo, Venda já cancelada)
+    if (
+      msg.includes('indisponivel') || 
+      msg.includes('insuficiente') ||
+      msg.includes('inconsist') ||
+      msg.includes('ja foi cancelada')
+    ) {
       return res.status(400).json({ message: error.message });
     }
-
-    // Erros de negócio geral (já foi cancelada, etc)
-    if (normalizedMessage.includes('cancelada')) {
-      return res.status(409).json({ message: error.message });
-    }
-
+    
     return res.status(400).json({ message: error.message });
   }
-
-  return res.status(500).json({ message: 'Erro interno do servidor' });
+  
+  return res.status(500).json({ message: 'Erro interno no servidor de vendas' });
 };
 
 export class SaleController {
@@ -79,25 +62,14 @@ export class SaleController {
       const data = createSaleSchema.parse(req.body);
 
       // 2. Segurança: Recuperar userId do JWT (req.user)
-      if (!req.user) {
+      const userId = (req as any).user?.userId;
+
+      if (!userId) {
         return res.status(401).json({ message: 'Usuário não autenticado.' });
       }
 
-      const userId = req.user.userId;
-
-      // 3. Chamar o serviço
-      const sale = await saleService.createSale({
-        userId,
-        items: data.items,
-        paymentMethod: data.paymentMethod as PaymentMethod
-      });
-
-      // 4. Retornar resultado
-      return res.status(201).json({
-        message: 'Venda criada com sucesso.',
-        sale
-      });
-
+      const result = await saleService.createSale({ ...data, userId });
+      return res.status(201).json(result);
     } catch (error) {
       return handleError(res, error);
     }
@@ -106,19 +78,18 @@ export class SaleController {
   // === GET /sales (Listar Vendas) ===
   async listSales(req: Request, res: Response) {
     try {
-      // Verificar se o usuário quer listar apenas suas próprias vendas
+      // Pega o ID do usuário logado
+      const userId = (req as any).user?.userId;
+      // Verifica se o front-end enviou ?myOnly=true na URL
       const { myOnly } = req.query;
-      
-      if (myOnly === 'true' && req.user) {
-        // Listar vendas do usuário atual
-        const sales = await saleService.listSalesByVendor(req.user.userId);
-        return res.status(200).json(sales);
+
+      if (myOnly === 'true' && userId) {
+        const result = await saleService.listSalesByVendor(userId);
+        return res.status(200).json(result);
       }
 
-      // Listar todas as vendas
-      const sales = await saleService.listSales();
-      return res.status(200).json(sales);
-
+      const result = await saleService.listSales();
+      return res.status(200).json(result);
     } catch (error) {
       return handleError(res, error);
     }
@@ -128,10 +99,8 @@ export class SaleController {
   async getSale(req: Request, res: Response) {
     try {
       const { id } = req.params;
-
-      const sale = await saleService.findSaleById(id);
-      return res.status(200).json(sale);
-
+      const result = await saleService.getSaleById(id);
+      return res.status(200).json(result);
     } catch (error) {
       return handleError(res, error);
     }
@@ -141,10 +110,10 @@ export class SaleController {
   async cancelSale(req: Request, res: Response) {
     try {
       const { id } = req.params;
-
-      const result = await saleService.cancelSale(id);
+      const { reason } = cancelSaleSchema.parse(req.body);
+      
+      const result = await saleService.cancelSale(id, reason);
       return res.status(200).json(result);
-
     } catch (error) {
       return handleError(res, error);
     }

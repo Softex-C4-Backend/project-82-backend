@@ -65,10 +65,6 @@ app.use('/batches', batchRoutes);
 // Tudo que começar com /sales, mande para saleRoutes
 app.use('/sales', saleRoutes);
 
-// Configura as rotas de Venda (PDV)
-// Tudo que começar com /sales, mande para saleRoutes
-app.use('/sales', saleRoutes);
-
 // --- ROTA DE TESTE DE CONEXÃO ---
 // Esta rota testa se a API está de pé E se o banco de dados está conectado.
 app.get('/', async (req, res) => {

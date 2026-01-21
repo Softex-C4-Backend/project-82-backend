@@ -1,37 +1,23 @@
 import { prisma } from '../database/prisma';
-import { PaymentMethod } from '@prisma/client';
+import { PaymentMethod, SaleStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 // DTO para Item de Venda
-interface CreateSaleItemInput {
+interface SaleItemInput {
   productId: string;
   quantity: number;
 }
 
 // DTO para Criação de Venda
-interface CreateSaleInput {
+interface CreateSaleDTO {
   userId: string;
-  items: CreateSaleItemInput[];
   paymentMethod: PaymentMethod;
-}
-
-// DTO para transformação da listagem
-interface SaleResponse {
-  id: string;
-  userId: string;
-  userName: string;
-  totalValue: string | Decimal;
-  paymentMethod: string;
-  status: string;
-  itemCount: number;
-  createdAt: Date;
-  updatedAt: Date;
+  items: SaleItemInput[];
 }
 
 export class SaleService {
-
   // === 1. CRIAR VENDA COM LÓGICA FEFO ===
-  async createSale({ userId, items, paymentMethod }: CreateSaleInput) {
+  async createSale({ userId, paymentMethod, items }: CreateSaleDTO) {
     
     // 1.1. Validação Básica
     if (!items || items.length === 0) {
@@ -39,288 +25,225 @@ export class SaleService {
     }
 
     // 1.2. Agrupar itens duplicados (consolidar quantidades)
-    const groupedItems = this.groupDuplicateItems(items);
-
-    // 1.3. Validar estoque e precificar cada item
-    const enrichedItems = await Promise.all(
-      groupedItems.map(async (item) => {
-        const product = await prisma.product.findUnique({
-          where: { id: item.productId }
-        });
-
-        if (!product) {
-          throw new Error(`Produto com ID ${item.productId} não encontrado.`);
-        }
-
-        if (!product.isAvailable) {
-          throw new Error(`Produto ${product.name} não está disponível para venda.`);
-        }
-
-        // Verifica se há estoque total
-        if (product.stockQuantity < item.quantity) {
-          throw new Error(
-            `Quantidade insuficiente do produto ${product.name}. Disponível: ${product.stockQuantity}, Solicitado: ${item.quantity}`
-          );
-        }
-
-        return {
-          ...item,
-          productName: product.name,
-          unitPrice: product.price
-        };
-      })
-    );
-
-    // 1.4. Executar tudo em uma transação (Atomic Operation)
-    const sale = await prisma.$transaction(async (tx) => {
+    const groupedItems = items.reduce((acc, item) => {
+      if (item.quantity <= 0) throw new Error('A quantidade de cada item deve ser maior que zero.');
       
-      // Calcular valor total
-      let totalValue = new Decimal(0);
-      enrichedItems.forEach((item) => {
-        const itemTotal = new Decimal(item.unitPrice).mul(item.quantity);
-        totalValue = totalValue.add(itemTotal);
-      });
+      const existing = acc.find(i => i.productId === item.productId);
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        acc.push({ ...item });
+      }
+      return acc;
+    }, [] as SaleItemInput[]);
 
-      // Buscar o nome do vendedor (snapshot)
+    
+    return await prisma.$transaction(async (tx) => {
+      // 3. Snapshot do Vendedor
       const user = await tx.user.findUnique({ where: { id: userId } });
-      if (!user) {
-        throw new Error('Usuário (vendedor) não encontrado.');
+      if (!user) throw new Error('Vendedor não encontrado no sistema.');
+
+      let totalSaleValue = new Decimal(0);
+      const saleItemsToCreate = [];
+
+      // 4. Processar cada produto (já agrupado)
+      for (const item of groupedItems) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+          include: {
+            batches: {
+              where: { currentQuantity: { gt: 0 } },
+              orderBy: { expirationDate: 'asc' }, // FEFO: Primeiro que vence, sai antes
+            },
+          },
+      });
+      
+      if (!product) throw new Error(`Produto ${item.productId} não encontrado.`);
+
+      // REGRA CRÍTICA: Bloquear venda de produto inativo
+      if (!product.isAvailable) {
+        throw new Error(`O produto ${product.name} não está disponível para venda.`);
       }
 
-      // Criar a Venda Principal
-      const newSale = await tx.sale.create({
+      // Validação de Estoque Global
+      if (product.stockQuantity < item.quantity) {
+        throw new Error(`Estoque insuficiente: ${product.name} (Solicitado: ${item.quantity}, Disponível: ${product.stockQuantity})`);
+      }
+
+      let remainingToExit = item.quantity;
+      const batchesUsedData = [];
+
+      // 5. Baixa nos Lotes
+      for (const batch of product.batches) {
+      if (remainingToExit <= 0) break;
+
+      const amountFromThisBatch = Math.min(batch.currentQuantity, remainingToExit);
+      
+      await tx.batch.update({
+          where: { id: batch.id },
+          data: { currentQuantity: { decrement: amountFromThisBatch } },
+        });
+
+        batchesUsedData.push({
+          batchId: batch.id,
+          quantity: amountFromThisBatch,
+          unitCost: batch.unitCost,
+        });
+
+        remainingToExit -= amountFromThisBatch;
+      }
+
+      // Trava de segurança (Lotes vs Global)
+        if (remainingToExit > 0) {
+          throw new Error(`Inconsistência de estoque: os lotes do produto ${product.name} não somam a quantidade necessária.`);
+        }
+
+        // 6. Atualização do Produto Global
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { decrement: item.quantity } },
+        });
+
+        // 7. Cálculos Financeiros
+        const itemUnitPrice = product.price;
+        const itemSubTotal = itemUnitPrice.mul(item.quantity);
+        totalSaleValue = totalSaleValue.add(itemSubTotal);
+
+        saleItemsToCreate.push({
+          productId: product.id,
+          productName: product.name,
+          quantity: item.quantity,
+          unitPrice: itemUnitPrice,
+          subTotal: itemSubTotal,
+          batches: {
+            create: batchesUsedData,
+          },
+        });
+      }
+
+      // 8. Criação do registro de Venda
+      return await tx.sale.create({
         data: {
           userId,
           userName: user.name,
-          totalValue,
           paymentMethod,
-          status: 'COMPLETED'
-        }
-      });
-
-      // Processar cada item da venda
-      for (const item of enrichedItems) {
-        
-        // Buscar lotes do produto ordenados por data de vencimento (FEFO)
-        const batches = await tx.batch.findMany({
-          where: {
-            productId: item.productId,
-            currentQuantity: { gt: 0 } // Apenas lotes com quantidade disponível
+          totalValue: totalSaleValue,
+          status: SaleStatus.COMPLETED,
+          items: {
+            create: saleItemsToCreate,
           },
-          orderBy: { expirationDate: 'asc' } // Primeiro os que vence mais cedo
-        });
-
-        if (batches.length === 0) {
-          throw new Error(`Nenhum lote disponível para o produto ${item.productName}.`);
-        }
-
-        // Criar o Item de Venda (snapshot)
-        const saleItem = await tx.saleItem.create({
-          data: {
-            saleId: newSale.id,
-            productId: item.productId,
-            productName: item.productName,
-            unitPrice: item.unitPrice,
-            quantity: item.quantity
-          }
-        });
-
-        // Distribuir a quantidade entre lotes (FEFO)
-        let remainingQuantity = item.quantity;
-
-        for (const batch of batches) {
-          if (remainingQuantity <= 0) break;
-
-          // Quantidade a retirar deste lote
-          const quantityFromBatch = Math.min(remainingQuantity, batch.currentQuantity);
-
-          // Criar ligação Sale -> Batch
-          await tx.saleItemBatch.create({
-            data: {
-              saleItemId: saleItem.id,
-              batchId: batch.id,
-              quantity: quantityFromBatch
-            }
-          });
-
-          // Atualizar a quantidade disponível no lote
-          await tx.batch.update({
-            where: { id: batch.id },
-            data: {
-              currentQuantity: {
-                decrement: quantityFromBatch
-              }
-            }
-          });
-
-          remainingQuantity -= quantityFromBatch;
-        }
-
-        // Atualizar o estoque total do produto
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stockQuantity: {
-              decrement: item.quantity
-            }
-          }
-        });
-      }
-
-      return newSale;
+        },
+        include: {
+          items: {
+            include: { batches: true },
+          },
+        },
+      });
     });
-
-    return sale;
   }
+
 
   // === 2. CANCELAR VENDA (Estorno) ===
-  async cancelSale(saleId: string) {
+  async cancelSale(saleId: string, reason: string) {
+
+    if (!reason || reason.trim().length < 5) {
+      throw new Error('Informe um motivo válido para o cancelamento (mínimo 5 caracteres).');
+    }
     
-    // Verificar se a venda existe e ainda está ativa
-    const sale = await prisma.sale.findUnique({
-      where: { id: saleId },
-      include: {
-        saleItems: {
-          include: {
-            saleItemBatches: true
-          }
-        }
+    return await prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.findUnique({
+        where: { id: saleId },
+        include: { items: { include: { batches: true } } },
+      });
+
+      if (!sale) throw new Error('Venda não encontrada.');
+      if (sale.status === SaleStatus.CANCELED) {
+        throw new Error('Esta venda já foi cancelada.');
       }
-    });
 
-    if (!sale) {
-      throw new Error('Venda não encontrada.');
-    }
-
-    if (sale.status === 'CANCELLED') {
-      throw new Error('Esta venda já foi cancelada. Não é possível cancelar novamente.');
-    }
-
-    // Executar estorno em transação
-    await prisma.$transaction(async (tx) => {
-      
-      // Processar cada item da venda
-      for (const saleItem of sale.saleItems) {
-        
-        // Devolver as quantidades para cada lote
-        for (const saleItemBatch of saleItem.saleItemBatches) {
+      for (const item of sale.items) {
+        // Estorno por Lote (Preciso)
+        for (const sib of item.batches) {
           await tx.batch.update({
-            where: { id: saleItemBatch.batchId },
-            data: {
-              currentQuantity: {
-                increment: saleItemBatch.quantity
+            where: { id: sib.batchId },
+            data: { currentQuantity: { increment: sib.quantity } },
+        });
               }
-            }
-          });
-        }
-
-        // Devolver ao estoque global do produto
+        // Estorno Global
         await tx.product.update({
-          where: { id: saleItem.productId },
-          data: {
-            stockQuantity: {
-              increment: saleItem.quantity
-            }
-          }
+          where: { id: item.productId },
+          data: { stockQuantity: { increment: item.quantity } },
         });
       }
 
-      // Marcar a venda como cancelada
-      await tx.sale.update({
+      return await tx.sale.update({
         where: { id: saleId },
-        data: { status: 'CANCELLED' }
+        data: {
+          status: SaleStatus.CANCELED,
+          cancelReason: reason,
+          canceledAt: new Date(),
+        },
       });
     });
-
-    return { message: 'Venda cancelada com sucesso.' };
   }
+          
+
 
   // === 3. LISTAR VENDAS COM TRANSFORMAÇÃO DE DADOS ===
-  async listSales(): Promise<SaleResponse[]> {
+  async listSales() {
     const sales = await prisma.sale.findMany({
+      orderBy: { createdAt: 'desc' },
       include: {
-        saleItems: true
-      },
-      orderBy: { createdAt: 'desc' }
+        user: { select: { name: true } },
+        _count: { select: { items: true } }
+      }
     });
 
-    // Transformar _count em itemCount
-    return sales.map((sale) => ({
-      id: sale.id,
-      userId: sale.userId,
-      userName: sale.userName,
-      totalValue: sale.totalValue,
-      paymentMethod: sale.paymentMethod,
-      status: sale.status,
-      itemCount: sale.saleItems.length,
-      createdAt: sale.createdAt,
-      updatedAt: sale.updatedAt
-    }));
+    // Mapeamento: Transforma o "_count" do Prisma em "itemCount" para o front-end
+    return sales.map(sale => {
+      return {
+        ...sale,
+        itemCount: sale._count.items,
+        _count: undefined // Remove o objeto _count original
+      };
+    });
   }
 
   // === 4. BUSCAR VENDA POR ID ===
-  async findSaleById(saleId: string) {
+    async getSaleById(id: string) {
     const sale = await prisma.sale.findUnique({
-      where: { id: saleId },
+      where: { id },
       include: {
-        saleItems: {
+        items: {
           include: {
-            saleItemBatches: {
-              include: {
-                batch: true
-              }
-            }
+            batches: { include: { batch: true } }
           }
-        }
+        },
+        user: { select: { name: true, registration: true } }
       }
     });
 
-    if (!sale) {
-      throw new Error('Venda não encontrada.');
-    }
-
-    // Transformar resultado
-    return {
-      ...sale,
-      itemCount: sale.saleItems.length
-    };
+    if (!sale) throw new Error('Venda não encontrada.');
+    return sale;
   }
 
   // === 5. LISTAR VENDAS DE UM VENDEDOR ESPECÍFICO ===
-  async listSalesByVendor(userId: string): Promise<SaleResponse[]> {
+  // Útil para o front-end na tela "Minhas Vendas"
+  async listSalesByVendor(userId: string) {
     const sales = await prisma.sale.findMany({
       where: { userId },
+      orderBy: { createdAt: 'desc' },
       include: {
-        saleItems: true
-      },
-      orderBy: { createdAt: 'desc' }
+        _count: { select: { items: true } }
+      }
     });
 
-    return sales.map((sale) => ({
-      id: sale.id,
-      userId: sale.userId,
-      userName: sale.userName,
-      totalValue: sale.totalValue,
-      paymentMethod: sale.paymentMethod,
-      status: sale.status,
-      itemCount: sale.saleItems.length,
-      createdAt: sale.createdAt,
-      updatedAt: sale.updatedAt
-    }));
-  }
-
-  // === MÉTODO AUXILIAR: Agrupar itens duplicados ===
-  private groupDuplicateItems(items: CreateSaleItemInput[]): CreateSaleItemInput[] {
-    const grouped = new Map<string, number>();
-
-    items.forEach((item) => {
-      const currentQuantity = grouped.get(item.productId) || 0;
-      grouped.set(item.productId, currentQuantity + item.quantity);
+    return sales.map(sale => {
+      return {
+        ...sale,
+        itemCount: sale._count.items,
+        _count: undefined
+      };
     });
-
-    return Array.from(grouped.entries()).map(([productId, quantity]) => ({
-      productId,
-      quantity
-    }));
   }
 }

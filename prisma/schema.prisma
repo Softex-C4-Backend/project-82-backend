@@ -37,14 +37,13 @@ enum UnitOfMeasure {
 enum PaymentMethod {
   CASH // Dinheiro
   CARD // Cartão
-  CHECK // Cheque
   PIX // Transferência PIX
 }
 
 // 5. Enum SaleStatus: Status de uma venda
 enum SaleStatus {
   COMPLETED // Venda finalizada
-  CANCELLED // Venda cancelada
+  CANCELED // Venda cancelada
 }
 
 // === MODELS ===
@@ -68,6 +67,8 @@ model User {
   // Permissões e Status (Regras de Segurança Máxima)
   role   Role       @default(EMPLOYEE)
   status UserStatus @default(PENDING) // Padrão: PENDENTE de primeira troca de senha
+
+  sales Sale[]
 
   // Nome da tabela no banco de dados
   @@map("user")
@@ -168,6 +169,7 @@ model Sale {
 
   // Identificação do Vendedor (Snapshot)
   userId            String      // FK para User (quem vendeu)
+  user              User        @relation(fields: [userId], references: [id])
   userName          String      // Snapshot do nome do vendedor na hora da venda
   
   // Dados Financeiros
@@ -177,14 +179,19 @@ model Sale {
   // Status
   status            SaleStatus  @default(COMPLETED)
 
+  // Auditoria de cancelamento
+  canceledAt        DateTime?
+  cancelReason      String?
+
   // Relacionamentos
-  saleItems         SaleItem[]  // Items da venda
+  items             SaleItem[]  // Items da venda
 
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
-  @@index([userId, createdAt])
-  @@map("sale")
+  @@index([userId])
+  @@index([createdAt])
+  @@map("sales")
 }
 
 // MODELO DE ITEM DE VENDA
@@ -201,17 +208,16 @@ model SaleItem {
 
   // Snapshots (dados no momento da venda)
   productName       String      // Nome do produto na hora da venda
-  unitPrice         Decimal     @db.Decimal(10, 2) // Preço unitário na hora da venda
   quantity          Int         // Quantidade vendida
+  unitPrice         Decimal     @db.Decimal(10, 2) // Preço unitário na hora da venda
+  subTotal          Decimal     @db.Decimal(10, 2)
 
   // Relacionamento com Lotes
-  saleItemBatches   SaleItemBatch[] // Quais lotes foram usados para este item
+  batches           SaleItemBatch[] // Quais lotes foram usados para este item
 
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-
-  @@index([saleId, productId])
-  @@map("sale_item")
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
 }
 
 // MODELO DE LIGAÇÃO: ITEM DE VENDA COM LOTE
@@ -228,10 +234,11 @@ model SaleItemBatch {
 
   // Dados de Rastreamento
   quantity          Int         // Quantidade tirada DESTE lote específico
+  unitCost          Decimal     @db.Decimal(10, 2) // Snapshot do custo do lote
 
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-
-  @@index([saleItemId, batchId])
-  @@map("sale_item_batch")
+  // GARANTIA: Um lote não pode aparecer duplicado no mesmo item de venda
+  @@unique([saleItemId, batchId])
+  
+  @@index([batchId])
+  @@map("sale_item_batches")
 }

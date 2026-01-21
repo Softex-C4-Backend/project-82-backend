@@ -35,9 +35,9 @@ router.get(
   (req, res) => saleController.getSale(req, res)
 );
 
-// POST /sales/:id/cancel
+// PUT /sales/:id/cancel
 // Cancelar venda: Apenas MANAGER
-router.post(
+router.put(
   '/:id/cancel',
   authMiddleware,
   authorizeRole(['MANAGER']),
