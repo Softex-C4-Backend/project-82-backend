@@ -33,6 +33,19 @@ enum UnitOfMeasure {
   LITER // Litro
 }
 
+// 4. Enum PaymentMethod: Formas de pagamento disponíveis
+enum PaymentMethod {
+  CASH // Dinheiro
+  CARD // Cartão
+  PIX // Transferência PIX
+}
+
+// 5. Enum SaleStatus: Status de uma venda
+enum SaleStatus {
+  COMPLETED // Venda finalizada
+  CANCELED // Venda cancelada
+}
+
 // === MODELS ===
 
 // Entidade User (Usuário)
@@ -54,6 +67,8 @@ model User {
   // Permissões e Status (Regras de Segurança Máxima)
   role   Role       @default(EMPLOYEE)
   status UserStatus @default(PENDING) // Padrão: PENDENTE de primeira troca de senha
+
+  sales Sale[]
 
   // Nome da tabela no banco de dados
   @@map("user")
@@ -115,8 +130,8 @@ model Product {
   // Batches (Lotes)
   batches         Batch[]
 
-  // Promotions (Promoções)
-  promotions      Promotion[]
+  // Itens de Venda
+  saleItems       SaleItem[]
 
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -139,29 +154,91 @@ model Batch {
   currentQuantity    Int        // quantidade restante (para futuras vendas/baixa por vencimento)
   unitCost           Decimal   @db.Decimal(10, 2)
 
+  // Relacionamentos de Venda
+  saleItemBatches    SaleItemBatch[] // Relação com itens de venda que usam este lote
+
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
   @@index([productId, expirationDate])
 }
 
-// MODELO DE PROMOÇÃO
-model Promotion {
-  id            String   @id @default(uuid())
-  name          String
-  description   String?
-  discountType  String   // "PERCENTAGE" ou "FIXED_VALUE"
-  discountValue Decimal  @db.Decimal(10, 2)
-  startDate     DateTime
-  endDate       DateTime
-  isActive      Boolean  @default(true)
+// MODELO DE VENDA
+model Sale {
+  id                String      @id @default(uuid())
 
-  // Relacionamento com Produto
-  productId     String
-  product       Product  @relation(fields: [productId], references: [id])
+  // Identificação do Vendedor (Snapshot)
+  userId            String      // FK para User (quem vendeu)
+  user              User        @relation(fields: [userId], references: [id])
+  userName          String      // Snapshot do nome do vendedor na hora da venda
+  
+  // Dados Financeiros
+  totalValue        Decimal     @db.Decimal(10, 2)
+  paymentMethod     PaymentMethod
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  // Status
+  status            SaleStatus  @default(COMPLETED)
 
-  @@map("promotion")
+  // Auditoria de cancelamento
+  canceledAt        DateTime?
+  cancelReason      String?
+
+  // Relacionamentos
+  items             SaleItem[]  // Items da venda
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+// MODELO DE ITEM DE VENDA
+model SaleItem {
+  id                String      @id @default(uuid())
+
+  // FK para Venda
+  saleId            String
+  sale              Sale        @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  // FK para Produto (informacional, para referência rápida)
+  productId         String
+  product           Product     @relation(fields: [productId], references: [id])
+
+  // Snapshots (dados no momento da venda)
+  productName       String      // Nome do produto na hora da venda
+  quantity          Int         // Quantidade vendida
+  unitPrice         Decimal     @db.Decimal(10, 2) // Preço unitário na hora da venda
+  subTotal          Decimal     @db.Decimal(10, 2)
+
+  // Relacionamento com Lotes
+  batches           SaleItemBatch[] // Quais lotes foram usados para este item
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+// MODELO DE LIGAÇÃO: ITEM DE VENDA COM LOTE
+model SaleItemBatch {
+  id                String      @id @default(uuid())
+
+  // FK para Item de Venda
+  saleItemId        String
+  saleItem          SaleItem    @relation(fields: [saleItemId], references: [id], onDelete: Cascade)
+
+  // FK para Lote
+  batchId           String
+  batch             Batch       @relation(fields: [batchId], references: [id])
+
+  // Dados de Rastreamento
+  quantity          Int         // Quantidade tirada DESTE lote específico
+  unitCost          Decimal     @db.Decimal(10, 2) // Snapshot do custo do lote
+
+  // GARANTIA: Um lote não pode aparecer duplicado no mesmo item de venda
+  @@unique([saleItemId, batchId])
+  
+  @@index([batchId])
+  @@map("sale_item_batches")
 }

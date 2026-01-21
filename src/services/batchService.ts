@@ -42,11 +42,9 @@ export class BatchService {
     // 1.4. Criação
     const batch = await prisma.$transaction(async (tx) => {
     // 1.5. Validação de Produto (Regra de Negócio: Deve existir)
-    // @ts-ignore
     const productExists = await tx.product.findUnique({ where: { id: data.productId } });
     if (!productExists) throw new Error('Produto não encontrado ou inválido.');
 
-    // @ts-ignore
     const created = await tx.batch.create({
         data: {
         productId: data.productId,
@@ -60,9 +58,7 @@ export class BatchService {
     });
 
     // 1.6. Atualiza o estoque do produto
-    // @ts-ignore
-      // @ts-ignore
-      await tx.product.update({
+    await tx.product.update({
         where: { id: data.productId },
         data: { 
             stockQuantity: { increment: data.initialQuantity },
@@ -80,7 +76,6 @@ export class BatchService {
   async findAllBatches(productId?: string){
     // (opcional) valida se o produto existe quando vier productId
     if (productId) {
-      // @ts-ignore
       const productExists = await prisma.product.findUnique({
         where: { id: productId },
         select: { id: true },
@@ -88,7 +83,6 @@ export class BatchService {
       if (!productExists) throw new Error('Produto não encontrado ou inválido.');
     }
 
-    // @ts-ignore
     const batches = await prisma.batch.findMany({
       where: {
         ...(productId ? { productId } : {}),
@@ -113,7 +107,6 @@ export class BatchService {
 
   // --- 3. BUSCAR LOTE POR ID ---
   async findBatchById(id: string) {
-    // @ts-ignore
     const batch = await prisma.batch.findUnique({
       where: { id },
       include: {
@@ -139,7 +132,6 @@ export class BatchService {
   // --- 4. ATUALIZAR LOTE ---
   async updateBatch(id: string, data: UpdateBatchDTO) {
     // 4.1. Verifica se o lote existe
-    // @ts-ignore
     const existingBatch = await prisma.batch.findUnique({ where: { id } });
     if (!existingBatch) {
       throw new Error('Lote não encontrado.');
@@ -172,7 +164,6 @@ export class BatchService {
     }
 
     // 4.5. Atualização
-    // @ts-ignore
     const updatedBatch = await prisma.batch.update({
       where: { id },
       data: {
@@ -187,8 +178,6 @@ export class BatchService {
 
   // --- 5. DELETAR LOTE ---
   async deleteBatch(id: string) {
-    // @ts-ignore
-    // @ts-ignore
     const batch = await prisma.batch.findUnique({ where: { id } });
     if (!batch) {
       throw new Error('Lote não encontrado.');
@@ -200,11 +189,9 @@ export class BatchService {
     }
 
     await prisma.$transaction(async (tx) => {
-      // @ts-ignore
       await tx.batch.delete({ where: { id } });
 
-      // @ts-ignore
-    await tx.product.update({
+      await tx.product.update({
         where: { id: batch.productId },
         data: { stockQuantity: { decrement: batch.initialQuantity } },
       });
