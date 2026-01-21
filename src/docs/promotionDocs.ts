@@ -1,3 +1,4 @@
+// src/docs/promotionDocs.ts
 export const promotionDocs = {
   '/promotions': {
     get: {

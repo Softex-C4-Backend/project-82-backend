@@ -4,6 +4,7 @@ import { z, ZodError } from 'zod';
 
 const promotionService = new PromotionService();
 
+// Teste de validação com Zod
 const promotionSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
   description: z.string().optional().nullable(),

@@ -145,7 +145,7 @@ model Batch {
   @@index([productId, expirationDate])
 }
 
-// MODELO DE PROMOÇÃO
+// MODELO DE PROMOÇÃO (JOSE)
 model Promotion {
   id            String   @id @default(uuid())
   name          String

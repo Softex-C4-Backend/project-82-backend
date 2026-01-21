@@ -1,3 +1,4 @@
+// src/services/promotionService.ts
 import { prisma } from '../database/prisma';
 
 interface CreatePromotionDTO {
