@@ -10,6 +10,7 @@ interface CreateProductDTO {
   unitOfMeasure: UnitOfMeasure;
   categoryId: string;
   supplierId?: string;
+  minStock?: number;
 }
 
 // DTO para Atualização (Campos opcionais)
@@ -23,6 +24,7 @@ interface UpdateProductDTO {
   categoryId?: string;
   supplierId?: string;
   isAvailable?: boolean;
+  minStock?: number;
 }
 
 export class ProductService {

@@ -60,11 +60,10 @@ export class BatchService {
     // 1.6. Atualiza o estoque do produto
     await tx.product.update({
         where: { id: data.productId },
-        data: { 
-            stockQuantity: { increment: data.initialQuantity },
-            cost: data.unitCost // Define o novo custo de referência baseado nesta entrada
-        },
+        data: { stockQuantity: { increment: data.initialQuantity } },
     });
+
+    await this.updateProductCost(tx, data.productId);
 
     return created;
     });
@@ -164,13 +163,20 @@ export class BatchService {
     }
 
     // 4.5. Atualização
-    const updatedBatch = await prisma.batch.update({
-      where: { id },
-      data: {
-          ...data,
-          receivedDate,
-          expirationDate,
-      },
+    const updatedBatch = await prisma.$transaction(async (tx) => {
+      const batch = await tx.batch.update({
+        where: { id },
+        data: {
+            ...data,
+            receivedDate,
+            expirationDate,
+        },
+      });
+
+      // Recalcula o custo caso a data ou valor do lote editado mudem a regra de prateleira
+      await this.updateProductCost(tx, batch.productId);
+
+      return batch;
     });
 
     return updatedBatch;
@@ -195,8 +201,43 @@ export class BatchService {
         where: { id: batch.productId },
         data: { stockQuantity: { decrement: batch.initialQuantity } },
       });
+
+      await this.updateProductCost(tx, batch.productId);
     });
 
     return { message: 'Lote removido com sucesso.' };
   }
+
+  // --- 6. ATUALIZAR CUSTO DO PRODUTO BASEADO NO LOTE MAIS ANTIGO COM ESTOQUE (FIFO) ---
+  private async updateProductCost(tx: any, productId: string) {
+    // 1. Busca o lote mais próximo de vencer que ainda tem estoque (FIFO)
+    const oldestBatch = await tx.batch.findFirst({
+      where: { 
+        productId, 
+        currentQuantity: { gt: 0 } 
+      },
+      orderBy: { expirationDate: 'asc' },
+    });
+
+    // 2. Busca o custo atual registrado no produto para comparação
+    const currentProduct = await tx.product.findUnique({
+      where: { id: productId },
+      select: { cost: true }
+    });
+
+    // Se não houver lote com estoque, não temos um custo de referência para prateleira
+    if (!oldestBatch) return;
+
+    // 3. Só faz o update se o custo for diferente (Performance: evita escritas inúteis)
+    const newCost = oldestBatch.unitCost.toString();
+    const currentCost = currentProduct?.cost?.toString();
+
+    if (newCost !== currentCost) {
+      await tx.product.update({
+        where: { id: productId },
+        data: { cost: oldestBatch.unitCost },
+      });
+    }
+  }
 }
+

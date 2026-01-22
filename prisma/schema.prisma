@@ -114,6 +114,7 @@ model Product {
   price           Decimal        @db.Decimal(10, 2)
   cost            Decimal?       @db.Decimal(10, 2)
   stockQuantity   Int           @default(0)
+  minStock        Int           @default(30)
   unitOfMeasure   UnitOfMeasure // Exige uma unidade do nosso Enum
 
   // Relacionamentos
