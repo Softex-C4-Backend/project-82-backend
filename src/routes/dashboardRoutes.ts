@@ -14,6 +14,14 @@ router.get(
   dashboardController.getLowStock
 );
 
+// Rota para obter produtos em falta (estoque zerado)
+router.get(
+  '/out-of-stock',
+  authMiddleware,
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  dashboardController.getOutOfStock
+);
+
 // Rota para obter valor total do estoque
 router.get(
   '/inventory-value',

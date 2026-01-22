@@ -32,6 +32,44 @@ export const dashboardDocs = {
     }
   },
 
+  // * RETORNAR PRODUTOS COM ESTOQUE ZERADO
+  '/dashboard/out-of-stock': {
+    get: {
+      summary: 'Lista produtos com estoque zerado (Ruptura)',
+      description: 'Retorna produtos que estão marcados como disponíveis (isAvailable: true) mas que possuem quantidade em estoque igual a zero.',
+      tags: ['Dashboard'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: 'Lista de produtos em falta recuperada com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    name: { type: 'string' },
+                    code: { type: 'string' },
+                    category: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Não autorizado' },
+        500: { description: 'Erro ao buscar produtos em falta' }
+      }
+    }
+  },
+
   // * CALCULAR VALOR TOTAL FINANCEIRO EM ESTOQUE
   '/dashboard/inventory-value': {
     get: {

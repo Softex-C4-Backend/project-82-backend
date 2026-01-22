@@ -79,4 +79,28 @@ export class DashboardService {
       details
     };
   }
+
+  // --- 3. PRODUTOS EM FALTA (RUPTURA) ---
+  // Retorna produtos que estão ativos no sistema (isAvailable: true) mas que o estoque zerou.
+  async getOutOfStockProducts() {
+    return await prisma.product.findMany({
+      where: {
+        stockQuantity: 0,
+        isAvailable: true
+      },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        category: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+  }
 }

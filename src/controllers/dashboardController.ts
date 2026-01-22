@@ -29,4 +29,16 @@ export class DashboardController {
       return res.status(500).json({ message });
     }
   }
+
+  // GET /dashboard/out-of-stock
+  async getOutOfStock(req: Request, res: Response) {
+    try {
+      const result = await dashboardService.getOutOfStockProducts();
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao buscar produtos em falta';
+      return res.status(500).json({ message });
+    }
+  }
 }
