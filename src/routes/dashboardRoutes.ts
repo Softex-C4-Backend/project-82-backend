@@ -6,16 +6,20 @@ import { authorizeRole } from '../middlewares/roleMiddleware';
 const router = Router();
 const dashboardController = new DashboardController();
 
-/**
- * Rota para o Dashboard: Produtos com Estoque Baixo
- * Acesso permitido para MANAGER e EMPLOYEE, pois ambos precisam 
- * monitorar o que está acabando para repor ou organizar.
- */
+// Rota para obter produtos com baixo estoque
 router.get(
   '/low-stock',
   authMiddleware,
   authorizeRole(['MANAGER', 'EMPLOYEE']),
   dashboardController.getLowStock
+);
+
+// Rota para obter valor total do estoque
+router.get(
+  '/inventory-value',
+  authMiddleware,
+  authorizeRole(['MANAGER']),
+  dashboardController.getInventoryValue
 );
 
 export default router;

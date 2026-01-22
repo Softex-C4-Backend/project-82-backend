@@ -17,4 +17,16 @@ export class DashboardController {
       return res.status(500).json({ message });
     }
   }
+
+  // GET /dashboard/inventory-value
+  async getInventoryValue(req: Request, res: Response) {
+    try {
+      const result = await dashboardService.getInventoryValue();
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao calcular valor do estoque';
+      return res.status(500).json({ message });
+    }
+  }
 }
