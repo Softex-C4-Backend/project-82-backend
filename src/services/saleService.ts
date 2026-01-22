@@ -104,6 +104,9 @@ export class SaleService {
           data: { stockQuantity: { decrement: item.quantity } },
         });
 
+        // Se a venda esgotou um lote, o custo do produto deve "pular" para o próximo lote da fila
+        await this.updateProductCost(tx, item.productId);
+
         // 7. Cálculos Financeiros
         const itemUnitPrice = product.price;
         const itemSubTotal = itemUnitPrice.mul(item.quantity);
@@ -142,7 +145,6 @@ export class SaleService {
     });
   }
 
-
   // === 2. CANCELAR VENDA (Estorno) ===
   async cancelSale(saleId: string, reason: string) {
 
@@ -174,6 +176,8 @@ export class SaleService {
           where: { id: item.productId },
           data: { stockQuantity: { increment: item.quantity } },
         });
+
+        await this.updateProductCost(tx, item.productId);
       }
 
       return await tx.sale.update({
@@ -186,8 +190,6 @@ export class SaleService {
       });
     });
   }
-          
-
 
   // === 3. LISTAR VENDAS COM TRANSFORMAÇÃO DE DADOS ===
   async listSales() {
@@ -245,5 +247,37 @@ export class SaleService {
         _count: undefined
       };
     });
+  }
+
+
+  private async updateProductCost(tx: any, productId: string) {
+    // 1. Busca o lote mais próximo de vencer que ainda tem estoque (FEFO/FIFO)
+    const oldestBatch = await tx.batch.findFirst({
+      where: { 
+        productId, 
+        currentQuantity: { gt: 0 } 
+      },
+      orderBy: { expirationDate: 'asc' },
+    });
+
+    // 2. Busca o custo atual registrado no produto para comparação
+    const currentProduct = await tx.product.findUnique({
+      where: { id: productId },
+      select: { cost: true }
+    });
+
+    // Se não houver lote com estoque, mantemos o custo como está ou poderíamos zerar
+    if (!oldestBatch) return;
+
+    // 3. Só faz o update se o custo for diferente (Performance: evita escritas inúteis no banco)
+    const newCost = oldestBatch.unitCost.toString();
+    const currentCost = currentProduct?.cost?.toString();
+
+    if (newCost !== currentCost) {
+      await tx.product.update({
+        where: { id: productId },
+        data: { cost: oldestBatch.unitCost },
+      });
+    }
   }
 }

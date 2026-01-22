@@ -8,6 +8,7 @@ import { batchDocs } from './batchDocs';
 import { utilsDocs } from './utilsDocs';
 import { saleDocs } from './saleDocs';
 import { promotionDocs } from './promotionDocs';
+import { dashboardDocs } from './dashboardDocs';
 
 const options = {
   definition: {
@@ -37,6 +38,7 @@ const options = {
       ...batchDocs,
       ...saleDocs,
       ...promotionDocs,
+      ...dashboardDocs,
       ...utilsDocs,
     },
   },
