@@ -37,7 +37,9 @@ export const saleDocs = {
                     user: {
                       type: 'object',
                       properties: {
-                        name: { type: 'string' }
+                        name: { type: 'string' },
+                        email: { type: 'string', format: 'email'},
+                        registration: { type: 'string' },
                       }
                     }
                   },
