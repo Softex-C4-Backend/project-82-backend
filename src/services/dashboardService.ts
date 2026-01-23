@@ -264,4 +264,58 @@ export class DashboardService {
 
     return enrichedRanking;
   }
+
+  // --- 8. PRODUTOS MENOS VENDIDOS (INCLUINDO ZERO VENDAS) ---
+  async getLeastSoldProducts(days: number = 30, limit: number = 5) {
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - days);
+
+    // 1. Busca o volume de vendas apenas do período selecionado
+    const salesStats = await prisma.saleItem.groupBy({
+      by: ['productId'],
+      where: {
+        sale: {
+          createdAt: { gte: startDate },
+          status: 'COMPLETED'
+        }
+      },
+      _sum: {
+        quantity: true,
+        subTotal: true
+      }
+    });
+
+    // 2. Busca TODOS os produtos ativos para encontrar os que NÃO venderam
+    const allProducts = await prisma.product.findMany({
+      where: { isAvailable: true }, // Ignora produtos inativos/excluídos
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        stockQuantity: true,
+        unitOfMeasure: true
+      }
+    });
+
+    // 3. Cruza as listas: Se o produto não tem venda registrada, assume 0
+    const ranking = allProducts.map(product => {
+      const stat = salesStats.find(s => s.productId === product.id);
+
+      return {
+        productId: product.id,
+        productName: product.name,
+        productCode: product.code,
+        unitOfMeasure: product.unitOfMeasure,
+        totalSold: stat?._sum.quantity || 0,        // Aqui está o segredo do Zero
+        totalRevenue: Number(stat?._sum.subTotal) || 0,
+        currentStock: product.stockQuantity
+      };
+    });
+
+    // 4. Ordena Crescente (Menos vendidos primeiro) e corta no limite
+    ranking.sort((a, b) => a.totalSold - b.totalSold);
+
+    return ranking.slice(0, limit);
+  }
 }

@@ -54,4 +54,12 @@ router.get(
   dashboardController.getBestSellers
 );
 
+// Rota para produtos menos vendidos (incluindo os com zero vendas)
+router.get(
+  '/least-sold',
+  authMiddleware,
+  authorizeRole(['MANAGER']),
+  dashboardController.getLeastSoldProducts
+);
+
 export default router;

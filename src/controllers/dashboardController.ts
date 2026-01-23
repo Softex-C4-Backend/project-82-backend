@@ -85,4 +85,18 @@ export class DashboardController {
       return res.status(500).json({ message });
     }
   }
+
+  // GET /dashboard/least-sold
+  async getLeastSoldProducts(req: Request, res: Response) {
+    try {
+      const days = req.query.days ? Number(req.query.days) : 30;
+      const limit = req.query.limit ? Number(req.query.limit) : 5;
+      
+      const result = await dashboardService.getLeastSoldProducts(days, limit);
+      return res.status(200).json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao buscar produtos menos vendidos';
+      return res.status(500).json({ message });
+    }
+  }
 }
