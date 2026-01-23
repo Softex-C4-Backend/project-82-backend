@@ -12,16 +12,38 @@ const promotionSchema = z.object({
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   productId: z.string().uuid('ID do produto inválido.'),
+  isActive: z.boolean().optional(),
 });
 
 const handleError = (res: Response, error: any) => {
   if (error instanceof ZodError) {
     return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
   }
+  
   if (error instanceof Error) {
+    const normalize = (s: string) => 
+      s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    const msg = normalize(error.message);
+
+    // Erros 404
+    if (msg.includes('nao encontrada') || msg.includes('nao encontrado')) {
+      return res.status(404).json({ message: error.message });
+    }
+
+    // Erros 400 (Regras de negócio, como sobreposição de datas)
+    if (
+      msg.includes('ja existe uma promocao') || 
+      msg.includes('posterior') || 
+      msg.includes('datas invalidas')
+    ) {
+      return res.status(400).json({ message: error.message });
+    }
+
     return res.status(400).json({ message: error.message });
   }
-  return res.status(500).json({ message: 'Erro interno no servidor' });
+  
+  return res.status(500).json({ message: 'Erro interno no servidor de promoções' });
 };
 
 export class PromotionController {

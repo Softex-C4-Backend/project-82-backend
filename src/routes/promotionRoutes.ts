@@ -9,16 +9,56 @@ const promotionController = new PromotionController();
 // Todas as rotas de promoções exigem autenticação
 router.use(authMiddleware);
 
-// Apenas Managers podem criar, atualizar ou deletar promoções
-router.post('/', authorizeRole(['MANAGER']), promotionController.create);
-router.patch('/:id', authorizeRole(['MANAGER']), promotionController.update);
-router.delete('/:id', authorizeRole(['MANAGER']), promotionController.delete);
+// =========================================================
+// GRUPO 1: Rotas de LEITURA (Acesso para MANAGER e EMPLOYEE)
+// =========================================================
 
-// Managers também veem as notificações de vencimento
-router.get('/notifications/expiring', authorizeRole(['MANAGER']), promotionController.getExpiringNotifications);
+// IMPORTANTE: Rotas estáticas devem vir antes das dinâmicas (/:id)
+// Lista notificações de produtos próximos ao vencimento para sugerir promoções
+router.get(
+  '/notifications/expiring',
+  authorizeRole(['MANAGER']),
+  promotionController.getExpiringNotifications
+);
 
-// Listagem e busca por ID podem ser acessadas por Employees também (para visualização no PDV/Estoque)
-router.get('/', promotionController.list);
-router.get('/:id', promotionController.getById);
+// Listar todas as promoções
+router.get(
+  '/',
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  promotionController.list
+);
+
+// Buscar uma promoção específica por ID
+router.get(
+  '/:id',
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  promotionController.getById
+);
+
+
+// =========================================================
+// GRUPO 2: Rotas de ESCRITA (Acesso APENAS para MANAGER)
+// =========================================================
+
+// Criar nova promoção
+router.post(
+  '/',
+  authorizeRole(['MANAGER']),
+  promotionController.create
+);
+
+// Atualizar promoção existente (Usando PUT para manter consistência com Produtos)
+router.put(
+  '/:id',
+  authorizeRole(['MANAGER']),
+  promotionController.update
+);
+
+// Deletar promoção
+router.delete(
+  '/:id',
+  authorizeRole(['MANAGER']),
+  promotionController.delete
+);
 
 export default router;
