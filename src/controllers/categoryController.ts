@@ -82,4 +82,23 @@ export class CategoryController {
       return handleError(res, error);
     }
   }
+
+  // GET /categories/search?q=termo
+  async searchCategories(req: Request, res: Response) {
+    try {
+      const { q } = req.query;
+      const searchTerm = q?.toString().trim();
+
+      if (!searchTerm) {
+        return res.status(400).json({ message: 'Informe um termo para a busca.' });
+      }
+
+      const result = await categoryService.searchCategories(searchTerm);
+      return res.status(200).json(result);
+    } catch (error) {
+      // Use o seu padrão de erro aqui (handleError ou o catch padrão)
+      const message = error instanceof Error ? error.message : 'Erro ao buscar categorias';
+      return res.status(400).json({ message });
+    }
+  }
 }

@@ -18,6 +18,14 @@ router.get(
   categoryController.listCategories
 );
 
+// Buscar categorias por nome
+router.get(
+  '/search',
+  authMiddleware,
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  categoryController.searchCategories
+);
+
 // Buscar categoria por ID
 router.get(
   '/:id',
