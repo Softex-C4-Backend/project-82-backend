@@ -205,7 +205,13 @@ export class SaleService {
     const sales = await prisma.sale.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { name: true } },
+        user: { 
+          select: { 
+            name: true, 
+            email: true,       
+            registration: true 
+          } 
+        },
         _count: { select: { items: true } }
       }
     });
@@ -230,7 +236,13 @@ export class SaleService {
             batches: { include: { batch: true } }
           }
         },
-        user: { select: { name: true, registration: true } }
+        user: { 
+          select: { 
+            name: true, 
+            email: true,       
+            registration: true  
+          } 
+        },
       }
     });
 

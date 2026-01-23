@@ -38,4 +38,12 @@ router.get(
   dashboardController.getSalesEvolution
 );
 
+// Rota para perdas por categoria (Gráfico de prejuízo)
+router.get(
+  '/losses-by-category',
+  authMiddleware,
+  authorizeRole(['MANAGER']),
+  dashboardController.getLossesByCategory
+);
+
 export default router;

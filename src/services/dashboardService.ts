@@ -149,4 +149,66 @@ export class DashboardService {
 
     return evolution;
   }
+
+  // --- 6. PERDAS POR CATEGORIA (LOTES VENCIDOS RECENTEMENTE) ---
+  // Calcula o prejuízo financeiro de itens vencidos, agrupado por categoria.
+  async getLossesByCategory(days: number = 30) {
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - days); // Define o limite retroativo (ex: 30 dias atrás)
+
+    // 1. Busca lotes que ainda têm saldo físico MAS já venceram nesse período
+    const expiredBatches = await prisma.batch.findMany({
+      where: {
+        currentQuantity: { gt: 0 }, // O item está lá ocupando espaço
+        expirationDate: {
+          lt: today,      // Já venceu (Data de validade < Hoje)
+          gte: startDate  // Venceu recentemente (Data de validade >= Data de Corte)
+        }
+      },
+      include: {
+        product: {
+          select: {
+            category: {
+              select: { id: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
+    // 2. Agrupa os valores por Categoria
+    const lossesMap = new Map<string, { id: string, name: string, total: number, count: number }>();
+
+    for (const batch of expiredBatches) {
+      const categoryId = batch.product.category.id;
+      const categoryName = batch.product.category.name;
+      
+      // Calcula o prejuízo deste lote específico
+      const lossValue = batch.currentQuantity * Number(batch.unitCost);
+
+      if (!lossesMap.has(categoryId)) {
+        lossesMap.set(categoryId, {
+          id: categoryId,
+          name: categoryName,
+          total: 0,
+          count: 0
+        });
+      }
+
+      const current = lossesMap.get(categoryId)!;
+      current.total += lossValue;           // Soma financeiro
+      current.count += batch.currentQuantity; // Soma quantidade física
+    }
+
+    // 3. Formata para lista e ordena pelo maior prejuízo
+    const result = Array.from(lossesMap.values()).map(item => ({
+      categoryId: item.id,
+      categoryName: item.name,
+      totalLossValue: item.total,
+      expiredItemCount: item.count
+    }));
+
+    return result.sort((a, b) => b.totalLossValue - a.totalLossValue);
+  }
 }
