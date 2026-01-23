@@ -99,6 +99,19 @@ export class BatchController {
       return handleError(res, error);
     }
   }
+
+  // --- 6. LOTES PRÓXIMOS AO VENCIMENTO (GET /batches/expiring) ---
+  async getExpiring(req: Request, res: Response) {
+    try {
+      // Permite que o usuário envie ?days=15 na URL, ou assume 30 por padrão
+      const days = req.query.days ? Number(req.query.days) : 30;
+      
+      const result = await batchService.getExpiringBatches(days);
+      return res.status(200).json(result);
+    } catch (error) {
+      return handleError(res, error);
+    }
+  }
 }
 
 

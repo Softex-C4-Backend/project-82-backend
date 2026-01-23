@@ -18,6 +18,14 @@ router.get(
   batchController.listBatches
 );
 
+// Listar lotes que estão para vencer em X dias (padrão 30 dias)
+router.get(
+  '/expiring',
+  authMiddleware,
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  batchController.getExpiring
+);
+
 // Buscar detalhes de um lote específico por ID
 router.get(
   '/:id',
