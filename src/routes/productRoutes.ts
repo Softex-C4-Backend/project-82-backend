@@ -26,6 +26,14 @@ router.get(
   productController.getProductByCode
 );
 
+// Buscar produtos por termo (código ou nome)
+router.get(
+  '/search',
+  authMiddleware,
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  productController.searchProducts
+);
+
 // Buscar produto por ID
 router.get(
   '/:id',

@@ -94,6 +94,27 @@ export class ProductController {
     }
   }
 
+  // GET /products/search?q=termo
+  async searchProducts(req: Request, res: Response) {
+    try {
+      // Pegamos o termo da query string: /products/search?q=cafe
+      const { q } = req.query;
+
+      const searchTerm = q?.toString().trim();
+
+      if (!searchTerm) {
+        return res.status(400).json({ message: 'Informe um termo para a busca.' });
+      }
+
+      // Chama o novo método que criamos no Service
+      const result = await productService.searchProducts(searchTerm);
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      return handleError(res, error);
+    }
+  }
+
   // PUT /products/:id
   async updateProduct(req: Request, res: Response) {
     try {
