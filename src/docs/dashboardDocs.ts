@@ -193,5 +193,55 @@ export const dashboardDocs = {
         500: { description: 'Erro ao buscar perdas' },
       },
     },
+  },
+
+  // * TOP PRODUTOS MAIS VENDIDOS
+  '/dashboard/best-sellers': {
+    get: {
+      summary: 'Ranking dos produtos mais vendidos',
+      description: 'Retorna a lista dos produtos com maior volume de vendas no período, incluindo o estoque atual para análise de reposição.',
+      tags: ['Dashboard'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'days',
+          schema: { type: 'integer', default: 30 },
+          description: 'Período de análise em dias',
+        },
+        {
+          in: 'query',
+          name: 'limit',
+          schema: { type: 'integer', default: 5 },
+          description: 'Quantidade de itens no ranking (ex: Top 5, Top 10)',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Ranking recuperado com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    productId: { type: 'string', format: 'uuid' },
+                    productName: { type: 'string' },
+                    productCode: { type: 'string' },
+                    totalSold: { type: 'integer', description: 'Quantidade total vendida no período' },
+                    totalRevenue: { type: 'number', description: 'Receita gerada pelo produto' },
+                    currentStock: { type: 'integer', description: 'Saldo atual em estoque' }
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: 'Não autorizado' },
+        403: { description: 'Acesso negado (Apenas Manager)' },
+        500: { description: 'Erro ao gerar ranking' },
+      },
+    },
   }
 };
