@@ -151,5 +151,47 @@ export const dashboardDocs = {
         500: { description: 'Erro ao buscar dados de evolução' },
       },
     },
+  },
+
+  // * PERDAS POR CATEGORIA (LOTES VENCIDOS)
+  '/dashboard/losses-by-category': {
+    get: {
+      summary: 'Perdas financeiras por categoria (Lotes Vencidos)',
+      description: 'Retorna o prejuízo total acumulado por lotes vencidos que ainda possuem estoque físico, agrupado por categoria.',
+      tags: ['Dashboard'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'days',
+          schema: { type: 'integer', default: 30 },
+          description: 'Dias retroativos para análise (ex: 30 para o último mês)',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Relatório de perdas recuperado com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    categoryId: { type: 'string', format: 'uuid' },
+                    categoryName: { type: 'string', example: 'Hortifruti' },
+                    totalLossValue: { type: 'number', example: 150.50 },
+                    expiredItemCount: { type: 'integer', example: 45 },
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: 'Não autorizado' },
+        403: { description: 'Acesso negado (Apenas Manager)' },
+        500: { description: 'Erro ao buscar perdas' },
+      },
+    },
   }
 };

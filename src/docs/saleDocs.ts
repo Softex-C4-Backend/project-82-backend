@@ -138,7 +138,14 @@ export const saleDocs = {
                   status: { type: 'string' },
                   userName: { type: 'string' },
                   createdAt: { type: 'string', format: 'date-time' },
-                  user: { type: 'object' },
+                  user: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      email: { type: 'string', format: 'email'},
+                      registration: { type: 'string' },
+                    }
+                  },
                   items: {
                     type: 'array',
                     items: {

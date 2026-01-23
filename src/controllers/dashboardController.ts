@@ -56,4 +56,19 @@ export class DashboardController {
       return res.status(500).json({ message });
     }
   }
+
+  // GET /dashboard/losses-by-category
+  async getLossesByCategory(req: Request, res: Response) {
+    try {
+      // Pega a quantidade de dias da URL (ex: ?days=30) ou usa 30 como padrão
+      const days = req.query.days ? Number(req.query.days) : 30;
+      
+      const result = await dashboardService.getLossesByCategory(days);
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao buscar perdas por categoria';
+      return res.status(500).json({ message });
+    }
+  }
 }
