@@ -311,9 +311,10 @@ export const productDocs = {
     },
   },
   '/products/code/{code}':{
-    // * BUSCA PRODUTO POR CÓDIGO
+    // * BUSCA PRODUTO POR CODE PARA O PDV
     get: {
-      summary: 'Busca um produto pelo código (code)',
+      summary: 'Busca um produto pelo código (code) - Para PDV',
+      description: 'Busca um produto pelo código de barras (code). Usado principalmente no PDV para agilizar a venda.',
       tags: ['Produtos'],
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -382,6 +383,58 @@ export const productDocs = {
         401: { description: 'Não autorizado' },
         404: { description: 'Produto não encontrado' },
       },
+    }
+  },
+
+  // * BUSCA INTELIGENTE DE PRODUTOS (NOME OU CÓDIGO)
+  '/products/search': {
+    get: {
+      summary: 'Busca inteligente de produtos (Nome ou Código)',
+      description: 'Pesquisa produtos pelo nome (parcial) ou pelo código (exato). Se o código for encontrado, retorna apenas esse produto numa lista. Caso contrário, procura por nomes que contenham o termo.',
+      tags: ['Produtos'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'q',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Termo de pesquisa (nome parcial ou código exato do produto)',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Pesquisa realizada com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    name: { type: 'string' },
+                    code: { type: 'string' },
+                    price: { type: 'number' },
+                    stockQuantity: { type: 'integer' },
+                    minStock: { type: 'integer' },
+                    unitOfMeasure: { type: 'string' },
+                    category: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Termo de pesquisa não informado' },
+        401: { description: 'Não autorizado' },
+        500: { description: 'Erro ao realizar a pesquisa' }
+      }
     }
   },
 };

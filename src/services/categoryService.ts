@@ -98,4 +98,17 @@ export class CategoryService {
 
     return { message: 'Categoria removida com sucesso.' };
   }
+
+  // 6. BUSCAR CATEGORIAS POR NOME
+  async searchCategories(term: string) {
+    return prisma.category.findMany({
+      where: {
+        name: {
+          contains: term,
+          mode: 'insensitive' // Busca ignorando maiúsculas/minúsculas
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+  }
 }

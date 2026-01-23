@@ -73,6 +73,49 @@ export const categoryDocs = {
       },
     },
   },
+
+  '/categories/search': {
+    get: {
+      summary: 'Buscar categorias por nome',
+      description: 'Retorna uma lista de categorias cujo nome contenha o termo pesquisado.',
+      tags: ['Categorias'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'q',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Termo de busca'
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Busca realizada com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    name: { type: 'string' },
+                    description: { type: 'string' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                    updatedAt: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Termo não informado' },
+        401: { description: 'Não autorizado' }
+      }
+    }
+  },
+
   '/categories/{id}': {
     // * BUSCA CATEGORIA POR ID
     get: {

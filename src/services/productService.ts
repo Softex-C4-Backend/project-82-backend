@@ -113,7 +113,36 @@ export class ProductService {
     return product;
   }
 
-  // --- 5. ATUALIZAR PRODUTO ---
+  // --- 5. RELATÓRIO DE VALOR EM ESTOQUE ---
+  async searchProducts(term: string) {
+    // 1. Tenta buscar por código exato primeiro (Alta Prioridade)
+    const productByCode = await prisma.product.findUnique({
+      where: { code: term },
+      include: { category: true, supplier: true }
+    });
+
+    // Se achou pelo código, retorna ele dentro de um array (para manter o padrão de lista)
+    if (productByCode) {
+      return [productByCode];
+    }
+
+    // 2. Se não achou pelo código, busca por nome (case insensitive)
+    return await prisma.product.findMany({
+      where: {
+        OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { code: { contains: term } } // Opcional: busca parcial no código também
+        ]
+      },
+      include: {
+        category: true,
+        supplier: true,
+      },
+      take: 20 // Limita para não travar o front se a busca for muito genérica
+    });
+  }
+
+  // --- 6. ATUALIZAR PRODUTO ---
   async updateProduct(id: string, data: UpdateProductDTO) {
     // 5.1. Regra de Negócio: Não permite alterar a quantidade em estoque via produto
     if ('stockQuantity' in data) throw new Error('O estoque não pode ser alterado pelo produto. Use Lotes.');
@@ -163,7 +192,7 @@ export class ProductService {
     return updatedProduct;
   }
 
-  // --- 6. DELETAR PRODUTO ---
+  // --- 7. DELETAR PRODUTO ---
   async deleteProduct(id: string) {
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
