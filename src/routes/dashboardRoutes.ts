@@ -30,4 +30,12 @@ router.get(
   dashboardController.getInventoryValue
 );
 
+// Rota para evolução de vendas (Gráfico)
+router.get(
+  '/sales-evolution',
+  authMiddleware,
+  authorizeRole(['MANAGER']),
+  dashboardController.getSalesEvolution
+);
+
 export default router;
