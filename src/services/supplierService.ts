@@ -147,4 +147,22 @@ export class SupplierService {
 
     return { message: 'Fornecedor removido com sucesso.' };
   }
+
+  // --- 6. BUSCA INTELIGENTE DE FORNECEDORES ---
+  async searchSuppliers(term: string) {
+    return prisma.supplier.findMany({
+      where: {
+        OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { cnpj: { contains: term } },
+          { contactEmail: { contains: term, mode: 'insensitive' } }
+        ]
+      },
+      orderBy: { name: 'asc' },
+      // Opcional: incluir contagem de produtos na busca também
+      include: {
+        _count: { select: { products: true } }
+      }
+    });
+  }
 }

@@ -18,6 +18,14 @@ router.get(
   supplierController.listSuppliers
 );
 
+// Buscar fornecedores (Nome, CNPJ ou E-mail)
+router.get(
+  '/search',
+  authMiddleware,
+  authorizeRole(['MANAGER', 'EMPLOYEE']),
+  supplierController.searchSuppliers
+);
+
 // Buscar fornecedor por ID
 router.get(
   '/:id',

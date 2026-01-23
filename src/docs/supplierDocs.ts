@@ -91,6 +91,53 @@ export const supplierDocs = {
       },
     },
   },
+  
+  '/suppliers/search': {
+    get: {
+      summary: 'Busca inteligente de fornecedores (Nome, CNPJ ou E-mail)',
+      description: 'Pesquisa fornecedores por nome parcial, CNPJ exato ou e-mail de contato.',
+      tags: ['Fornecedores'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'q',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Termo de busca (Nome, CNPJ ou E-mail)',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Busca realizada com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    name: { type: 'string' },
+                    cnpj: { type: 'string' },
+                    contactEmail: { type: 'string' },
+                    phone: { type: 'string' },
+                    city: { type: 'string' },
+                    state: { type: 'string' },
+                    productsCount: { type: 'integer' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: { description: 'Termo de busca não informado' },
+        401: { description: 'Não autorizado' },
+        500: { description: 'Erro ao realizar a busca' },
+      },
+    },
+  },
+
   '/suppliers/{id}': {
     // * BUSCA FORNECEDOR POR ID
     get: {

@@ -67,6 +67,23 @@ export class SupplierController {
     }
   }
 
+  // GET /suppliers/search?q=termo
+  async searchSuppliers(req: Request, res: Response) {
+    try {
+      const { q } = req.query;
+      const searchTerm = q?.toString().trim();
+
+      if (!searchTerm) {
+        return res.status(400).json({ message: 'Informe um termo para a busca.' });
+      }
+
+      const result = await supplierService.searchSuppliers(searchTerm);
+      return res.status(200).json(result);
+    } catch (error) {
+      return handleError(res, error);
+    }
+  }
+
   // PUT /suppliers/:id
   async updateSupplier(req: Request, res: Response) {
     try {
