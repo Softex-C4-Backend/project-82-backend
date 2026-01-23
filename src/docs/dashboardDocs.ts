@@ -243,5 +243,55 @@ export const dashboardDocs = {
         500: { description: 'Erro ao gerar ranking' },
       },
     },
+  },
+
+  // * TOP PRODUTOS MENOS VENDIDOS
+  '/dashboard/least-sold': {
+    get: {
+      summary: 'Ranking dos produtos menos vendidos (incluindo zero vendas)',
+      description: 'Retorna a lista dos produtos com menor volume de vendas no período, cruzando dados de vendas com o catálogo ativo. Útil para identificar produtos encalhados.',
+      tags: ['Dashboard'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'days',
+          schema: { type: 'integer', default: 30 },
+          description: 'Período de análise em dias',
+        },
+        {
+          in: 'query',
+          name: 'limit',
+          schema: { type: 'integer', default: 5 },
+          description: 'Quantidade de itens no ranking',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Ranking recuperado com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    productId: { type: 'string', format: 'uuid' },
+                    productName: { type: 'string' },
+                    productCode: { type: 'string' },
+                    totalSold: { type: 'integer', description: 'Quantidade total vendida (pode ser 0)' },
+                    totalRevenue: { type: 'number' },
+                    currentStock: { type: 'integer' }
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: 'Não autorizado' },
+        403: { description: 'Acesso negado (Apenas Manager)' },
+        500: { description: 'Erro ao gerar ranking' },
+      },
+    },
   }
 };
