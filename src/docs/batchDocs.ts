@@ -103,6 +103,54 @@ export const batchDocs = {
       },
     },
   },
+
+  // * LISTA LOTES PRÓXIMOS AO VENCIMENTO
+  '/batches/expiring': {
+    get: {
+      summary: 'Lista lotes próximos ao vencimento',
+      description: 'Retorna todos os lotes que possuem estoque e cuja data de validade está dentro do intervalo de dias informado (padrão 30 dias).',
+      tags: ['Lotes'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'days',
+          required: false,
+          schema: { type: 'integer', default: 30 },
+          description: 'Quantidade de dias para o filtro de vencimento',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Lista de lotes próximos ao vencimento recuperada com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    batchNumber: { type: 'string', nullable: true },
+                    expirationDate: { type: 'string', format: 'date-time' },
+                    currentQuantity: { type: 'integer' },
+                    productId: { type: 'string', format: 'uuid' },
+                    productName: { type: 'string' },
+                    productCode: { type: 'string' },
+                    unitOfMeasure: { type: 'string' },
+                    daysUntilExpiration: { type: 'integer' }
+                  }
+                }
+              }
+            }
+          }
+        },
+        401: { description: 'Não autorizado' },
+        500: { description: 'Erro ao buscar lotes vencendo' }
+      }
+    }
+  },
+
   '/batches/{id}': {
     // * BUSCA LOTE POR ID
     get: {

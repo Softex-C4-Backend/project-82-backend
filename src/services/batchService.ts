@@ -208,7 +208,49 @@ export class BatchService {
     return { message: 'Lote removido com sucesso.' };
   }
 
-  // --- 6. ATUALIZAR CUSTO DO PRODUTO BASEADO NO LOTE MAIS ANTIGO COM ESTOQUE (FIFO) ---
+  // --- 6. BUSCAR LOTES PRÓXIMOS AO VENCIMENTO (30 DIAS) ---
+  async getExpiringBatches(days: number = 30) {
+    const today = new Date();
+    const limitDate = new Date();
+    limitDate.setDate(today.getDate() + days);
+
+    const expiringBatches = await prisma.batch.findMany({
+      where: {
+        currentQuantity: { gt: 0 },
+        expirationDate: {
+          gte: today,     // A partir de hoje
+          lte: limitDate  // Até o limite de dias (ex: 30)
+        }
+      },
+      include: {
+        product: {
+          select: {
+            name: true,
+            code: true,
+            unitOfMeasure: true
+          }
+        }
+      },
+      orderBy: {
+        expirationDate: 'asc'
+      }
+    });
+
+    return expiringBatches.map(batch => ({
+      id: batch.id,
+      batchNumber: batch.code,
+      expirationDate: batch.expirationDate,
+      currentQuantity: batch.currentQuantity,
+      productId: batch.productId,
+      productName: batch.product.name,
+      productCode: batch.product.code,
+      unitOfMeasure: batch.product.unitOfMeasure,
+      // Retorna a contagem de dias para facilitar cores no Front-end (ex: vermelho se < 7 dias)
+      daysUntilExpiration: Math.ceil((new Date(batch.expirationDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    }));
+  }
+
+  // --- ATUALIZAR CUSTO DO PRODUTO BASEADO NO LOTE MAIS ANTIGO COM ESTOQUE (FIFO) ---
   private async updateProductCost(tx: any, productId: string) {
     // 1. Busca o lote mais próximo de vencer que ainda tem estoque (FIFO)
     const oldestBatch = await tx.batch.findFirst({
