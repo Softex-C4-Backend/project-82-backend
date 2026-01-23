@@ -20,6 +20,22 @@ export const productDocs = {
                     code: { type: 'string' },
                     description: { type: 'string' },
                     price: { type: 'number', format: 'float' },
+                    promotionalPrice: { 
+                      type: 'number', 
+                      format: 'float', 
+                      nullable: true, 
+                      description: 'Preço calculado caso haja uma promoção ativa' 
+                    },
+                    activePromotion: {
+                      type: 'object',
+                      nullable: true,
+                      description: 'Detalhes da promoção vigente no momento',
+                      properties: {
+                        name: { type: 'string' },
+                        discountType: { type: 'string', enum: ['PERCENTAGE', 'FIXED_VALUE'] },
+                        discountValue: { type: 'number' }
+                      }
+                    },
                     cost: { type: 'number', format: 'float' },
                     stockQuantity: { type: 'integer'},
                     minStock: { type: 'integer' },
@@ -151,6 +167,22 @@ export const productDocs = {
                   code: { type: 'string' },
                   description: { type: 'string' },
                   price: { type: 'number', format: 'float' },
+                  promotionalPrice: { 
+                    type: 'number', 
+                    format: 'float', 
+                    nullable: true, 
+                    description: 'Preço calculado caso haja uma promoção ativa' 
+                  },
+                  activePromotion: {
+                    type: 'object',
+                    nullable: true,
+                    description: 'Detalhes da promoção vigente no momento',
+                    properties: {
+                      name: { type: 'string' },
+                      discountType: { type: 'string', enum: ['PERCENTAGE', 'FIXED_VALUE'] },
+                      discountValue: { type: 'number' }
+                    }
+                  },
                   cost: { type: 'number', format: 'float' },
                   stockQuantity: { type: 'integer'},
                   minStock: { type: 'integer' },
@@ -339,6 +371,22 @@ export const productDocs = {
                   code: { type: 'string' },
                   description: { type: 'string' },
                   price: { type: 'number', format: 'float' },
+                  promotionalPrice: { 
+                    type: 'number', 
+                    format: 'float', 
+                    nullable: true, 
+                    description: 'Preço calculado caso haja uma promoção ativa' 
+                  },
+                  activePromotion: {
+                    type: 'object',
+                    nullable: true,
+                    description: 'Detalhes da promoção vigente no momento',
+                    properties: {
+                      name: { type: 'string' },
+                      discountType: { type: 'string', enum: ['PERCENTAGE', 'FIXED_VALUE'] },
+                      discountValue: { type: 'number' }
+                    }
+                  },
                   cost: { type: 'number', format: 'float' },
                   stockQuantity: { type: 'integer'},
                   minStock: { type: 'integer' },
@@ -416,6 +464,22 @@ export const productDocs = {
                     name: { type: 'string' },
                     code: { type: 'string' },
                     price: { type: 'number' },
+                    promotionalPrice: { 
+                      type: 'number', 
+                      format: 'float', 
+                      nullable: true, 
+                      description: 'Preço calculado caso haja uma promoção ativa' 
+                    },
+                    activePromotion: {
+                      type: 'object',
+                      nullable: true,
+                      description: 'Detalhes da promoção vigente no momento',
+                      properties: {
+                        name: { type: 'string' },
+                        discountType: { type: 'string', enum: ['PERCENTAGE', 'FIXED_VALUE'] },
+                        discountValue: { type: 'number' }
+                      }
+                    },
                     stockQuantity: { type: 'integer' },
                     minStock: { type: 'integer' },
                     unitOfMeasure: { type: 'string' },

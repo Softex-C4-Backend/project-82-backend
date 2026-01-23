@@ -46,6 +46,12 @@ enum SaleStatus {
   CANCELED // Venda cancelada
 }
 
+// 
+enum DiscountType {
+  PERCENTAGE
+  FIXED_VALUE
+}
+
 // === MODELS ===
 
 // Entidade User (Usuário)
@@ -249,21 +255,20 @@ model SaleItemBatch {
 
 // MODELO DE PROMOÇÃO
 model Promotion {
-  id            String   @id @default(uuid())
+  id            String       @id @default(uuid())
   name          String
   description   String?
-  discountType  String   // "PERCENTAGE" ou "FIXED_VALUE"
-  discountValue Decimal  @db.Decimal(10, 2)
+  discountType  DiscountType // Alterado de String para o Enum
+  discountValue Decimal      @db.Decimal(10, 2)
   startDate     DateTime
   endDate       DateTime
-  isActive      Boolean  @default(true)
+  isActive      Boolean      @default(true)
 
-  // Relacionamento com Produto
   productId     String
-  product       Product  @relation(fields: [productId], references: [id])
+  product       Product      @relation(fields: [productId], references: [id])
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@map("promotion")
 }
