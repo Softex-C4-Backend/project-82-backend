@@ -1,9 +1,10 @@
 import { prisma } from '../database/prisma';
+import { DiscountType } from '@prisma/client';
 
 interface CreatePromotionDTO {
   name: string;
   description?: string | null;
-  discountType: 'PERCENTAGE' | 'FIXED_VALUE';
+  discountType: DiscountType; // Usando o Enum do Prisma
   discountValue: number;
   startDate: Date | string;
   endDate: Date | string;
@@ -13,7 +14,7 @@ interface CreatePromotionDTO {
 interface UpdatePromotionDTO {
   name?: string;
   description?: string | null;
-  discountType?: 'PERCENTAGE' | 'FIXED_VALUE';
+  discountType?: DiscountType;
   discountValue?: number;
   startDate?: Date | string;
   endDate?: Date | string;
@@ -21,6 +22,7 @@ interface UpdatePromotionDTO {
 }
 
 export class PromotionService {
+  // --- 1. CRIAR PROMOÇÃO ---
   async createPromotion(data: CreatePromotionDTO) {
     const startDate = new Date(data.startDate);
     const endDate = new Date(data.endDate);
@@ -33,13 +35,29 @@ export class PromotionService {
       throw new Error('A data de término deve ser posterior à data de início.');
     }
 
-    // @ts-ignore
+    // Validação de sobreposição de datas
+    const overlappingPromotion = await prisma.promotion.findFirst({
+      where: {
+        productId: data.productId,
+        isActive: true,
+        OR: [
+          {
+            startDate: { lte: endDate },
+            endDate: { gte: startDate },
+          },
+        ],
+      },
+    });
+
+    if (overlappingPromotion) {
+      throw new Error('Já existe uma promoção ativa para este produto neste período.');
+    }
+
     const productExists = await prisma.product.findUnique({ where: { id: data.productId } });
     if (!productExists) {
       throw new Error('Produto não encontrado.');
     }
 
-    // @ts-ignore
     return await prisma.promotion.create({
       data: {
         ...data,
@@ -49,8 +67,8 @@ export class PromotionService {
     });
   }
 
+  // --- 2. LISTAR PROMOÇÕES ---
   async listPromotions(productId?: string) {
-    // @ts-ignore
     return await prisma.promotion.findMany({
       where: {
         ...(productId ? { productId } : {}),
@@ -68,8 +86,8 @@ export class PromotionService {
     });
   }
 
+  // --- 3. OBTER DETALHES DA PROMOÇÃO ---
   async getPromotionById(id: string) {
-    // @ts-ignore
     const promotion = await prisma.promotion.findUnique({
       where: { id },
       include: {
@@ -84,8 +102,8 @@ export class PromotionService {
     return promotion;
   }
 
+  // --- 4. ATUALIZAR PROMOÇÃO ---
   async updatePromotion(id: string, data: UpdatePromotionDTO) {
-    // @ts-ignore
     const existing = await prisma.promotion.findUnique({ where: { id } });
     if (!existing) {
       throw new Error('Promoção não encontrada.');
@@ -98,7 +116,6 @@ export class PromotionService {
       throw new Error('A data de término deve ser posterior à data de início.');
     }
 
-    // @ts-ignore
     return await prisma.promotion.update({
       where: { id },
       data: {
@@ -109,23 +126,22 @@ export class PromotionService {
     });
   }
 
+  // --- 5. REMOVER PROMOÇÃO ---
   async deletePromotion(id: string) {
-    // @ts-ignore
     const existing = await prisma.promotion.findUnique({ where: { id } });
     if (!existing) {
       throw new Error('Promoção não encontrada.');
     }
 
-    // @ts-ignore
     await prisma.promotion.delete({ where: { id } });
     return { message: 'Promoção removida com sucesso.' };
   }
 
+  // --- 6. LISTAR PRODUTOS COM LOTES VENCENDO EM X DIAS ---
   async getExpiringProducts(days: number = 7) {
     const thresholdDate = new Date();
     thresholdDate.setDate(thresholdDate.getDate() + days);
 
-    // @ts-ignore
     const expiringBatches = await prisma.batch.findMany({
       where: {
         currentQuantity: { gt: 0 },

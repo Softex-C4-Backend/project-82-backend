@@ -1,5 +1,6 @@
 export const promotionDocs = {
   '/promotions': {
+    // * LISTA TODAS AS PROMOÇÕES
     get: {
       summary: 'Lista todas as promoções',
       tags: ['Promoções'],
@@ -9,7 +10,7 @@ export const promotionDocs = {
           in: 'query',
           name: 'productId',
           schema: { type: 'string', format: 'uuid' },
-          description: 'Filtrar por ID do produto',
+          description: 'Filtrar promoções de um produto específico',
         },
       ],
       responses: {
@@ -48,8 +49,10 @@ export const promotionDocs = {
         401: { description: 'Não autorizado' },
       },
     },
+    // * CRIA NOVA PROMOÇÃO
     post: {
       summary: 'Cria uma nova promoção (Apenas Manager)',
+      description: 'Cria uma promoção validando se não há sobreposição de datas para o mesmo produto.',
       tags: ['Promoções'],
       security: [{ bearerAuth: [] }],
       requestBody: {
@@ -74,14 +77,17 @@ export const promotionDocs = {
       },
       responses: {
         201: { description: 'Promoção criada com sucesso' },
-        400: { description: 'Dados inválidos' },
+        400: { description: 'Dados inválidos ou já existe promoção ativa para este período.' },
         403: { description: 'Acesso negado' },
+        404: { description: 'Produto não encontrado' },
       },
     },
   },
   '/promotions/notifications/expiring': {
+    // * NOTIFICAÇÕES DE VENCIMENTO
     get: {
-      summary: 'Busca notificações de produtos próximos ao vencimento (Apenas Manager)',
+      summary: 'Busca notificações de produtos próximos ao vencimento',
+      description: 'Retorna lotes que vencem em breve para que o gerente possa criar promoções preventivas.',
       tags: ['Promoções'],
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -89,12 +95,12 @@ export const promotionDocs = {
           in: 'query',
           name: 'days',
           schema: { type: 'integer', default: 7 },
-          description: 'Número de dias para considerar próximo ao vencimento',
+          description: 'Dias de antecedência para considerar vencimento próximo',
         },
       ],
       responses: {
         200: {
-          description: 'Lista de notificações',
+          description: 'Lista de notificações gerada com sucesso',
           content: {
             'application/json': {
               schema: {
@@ -121,34 +127,26 @@ export const promotionDocs = {
     },
   },
   '/promotions/{id}': {
+    // * BUSCA POR ID
     get: {
       summary: 'Busca uma promoção pelo ID',
       tags: ['Promoções'],
       security: [{ bearerAuth: [] }],
       parameters: [
-        {
-          in: 'path',
-          name: 'id',
-          required: true,
-          schema: { type: 'string', format: 'uuid' },
-        },
+        { in: 'path', name: 'id', required: true, schema: { type: 'string', format: 'uuid' } },
       ],
       responses: {
-        200: { description: 'Detalhes da promoção' },
+        200: { description: 'Detalhes da promoção recuperados' },
         404: { description: 'Promoção não encontrada' },
       },
     },
-    patch: {
+    // * ATUALIZA PROMOÇÃO (Alterado para PUT para consistência)
+    put: {
       summary: 'Atualiza uma promoção (Apenas Manager)',
       tags: ['Promoções'],
       security: [{ bearerAuth: [] }],
       parameters: [
-        {
-          in: 'path',
-          name: 'id',
-          required: true,
-          schema: { type: 'string', format: 'uuid' },
-        },
+        { in: 'path', name: 'id', required: true, schema: { type: 'string', format: 'uuid' } },
       ],
       requestBody: {
         content: {
@@ -170,21 +168,18 @@ export const promotionDocs = {
       },
       responses: {
         200: { description: 'Promoção atualizada com sucesso' },
+        400: { description: 'Erro na validação das datas ou sobreposição.' },
         403: { description: 'Acesso negado' },
         404: { description: 'Promoção não encontrada' },
       },
     },
+    // * REMOVE PROMOÇÃO
     delete: {
       summary: 'Remove uma promoção (Apenas Manager)',
       tags: ['Promoções'],
       security: [{ bearerAuth: [] }],
       parameters: [
-        {
-          in: 'path',
-          name: 'id',
-          required: true,
-          schema: { type: 'string', format: 'uuid' },
-        },
+        { in: 'path', name: 'id', required: true, schema: { type: 'string', format: 'uuid' } },
       ],
       responses: {
         200: { description: 'Promoção removida com sucesso' },
