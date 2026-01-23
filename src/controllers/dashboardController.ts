@@ -41,4 +41,19 @@ export class DashboardController {
       return res.status(500).json({ message });
     }
   }
+
+  // GET /dashboard/sales-evolution
+  async getSalesEvolution(req: Request, res: Response) {
+    try {
+      // Pega a quantidade de dias da URL (ex: ?days=30) ou usa 7 como padrão
+      const days = req.query.days ? Number(req.query.days) : 7;
+      
+      const result = await dashboardService.getSalesEvolution(days);
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao buscar evolução de vendas';
+      return res.status(500).json({ message });
+    }
+  }
 }

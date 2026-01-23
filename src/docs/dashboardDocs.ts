@@ -110,5 +110,46 @@ export const dashboardDocs = {
         500: { description: 'Erro ao calcular valor do estoque' }
       }
     }
+  },
+
+  // * EVOLUÇÃO DE VENDAS (GRÁFICO)
+  '/dashboard/sales-evolution': {
+    get: {
+      summary: 'Evolução de vendas por período (Gráfico)',
+      description: 'Retorna o faturamento total e a quantidade de vendas agrupados por dia. Útil para gráficos de tendência.',
+      tags: ['Dashboard'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: 'query',
+          name: 'days',
+          schema: { type: 'integer', default: 7 },
+          description: 'Número de dias para análise retroativa (ex: 7, 15, 30)',
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Dados de evolução recuperados com sucesso',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    date: { type: 'string', example: '2023-10-25' },
+                    totalValue: { type: 'number', example: 1500.50 },
+                    saleCount: { type: 'integer', example: 15 },
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: 'Não autorizado' },
+        403: { description: 'Acesso negado (Apenas Manager)' },
+        500: { description: 'Erro ao buscar dados de evolução' },
+      },
+    },
   }
 };
