@@ -65,21 +65,30 @@ export class SaleService {
         throw new Error(`O produto ${product.name} não está disponível para venda.`);
       }
 
-      // Validação de Estoque Global
-      if (product.stockQuantity < item.quantity) {
-        throw new Error(`Estoque insuficiente: ${product.name} (Solicitado: ${item.quantity}, Disponível: ${product.stockQuantity})`);
+      // --- NOVA LÓGICA: FILTRAR LOTES VENCIDOS ---
+      const now = new Date();
+      
+      // 1. Separa apenas os lotes onde a data de validade é maior ou igual a agora
+      const validBatches = product.batches.filter(batch => new Date(batch.expirationDate) >= now);
+
+      // 2. Calcula quanto estoque VÁLIDO nós temos (ignora o saldo de lotes vencidos)
+      const totalValidStock = validBatches.reduce((acc, batch) => acc + batch.currentQuantity, 0);
+
+      // 3. Validação de Estoque Real
+      if (totalValidStock < item.quantity) {
+        throw new Error(`Estoque insuficiente para ${product.name}. (Solicitado: ${item.quantity}, Disponível Válido: ${totalValidStock}). Verifique se há lotes vencidos.`);
       }
 
       let remainingToExit = item.quantity;
       const batchesUsedData = [];
 
-      // 5. Baixa nos Lotes
-      for (const batch of product.batches) {
-      if (remainingToExit <= 0) break;
+      // 5. Baixa nos Lotes (Agora iteramos sobre validBatches, e não product.batches)
+      for (const batch of validBatches) {
+        if (remainingToExit <= 0) break;
 
-      const amountFromThisBatch = Math.min(batch.currentQuantity, remainingToExit);
+        const amountFromThisBatch = Math.min(batch.currentQuantity, remainingToExit);
       
-      await tx.batch.update({
+        await tx.batch.update({
           where: { id: batch.id },
           data: { currentQuantity: { decrement: amountFromThisBatch } },
         });
