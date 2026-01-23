@@ -6,6 +6,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 interface SaleItemInput {
   productId: string;
   quantity: number;
+  unitPrice: number;
 }
 
 // DTO para Criação de Venda
@@ -18,17 +19,12 @@ interface CreateSaleDTO {
 export class SaleService {
   // === 1. CRIAR VENDA COM LÓGICA FEFO ===
   async createSale({ userId, paymentMethod, items }: CreateSaleDTO) {
-    
-    // 1.1. Validação Básica
-    if (!items || items.length === 0) {
-      throw new Error('Uma venda deve conter pelo menos um item.');
-    }
+    if (!items || items.length === 0) throw new Error('Uma venda deve conter pelo menos um item.');
 
-    // 1.2. Agrupar itens duplicados (consolidar quantidades)
+    // Consolidação de itens (agora levando em conta o unitPrice enviado)
     const groupedItems = items.reduce((acc, item) => {
-      if (item.quantity <= 0) throw new Error('A quantidade de cada item deve ser maior que zero.');
-      
-      const existing = acc.find(i => i.productId === item.productId);
+      if (item.quantity <= 0) throw new Error('Quantidade deve ser maior que zero.');
+      const existing = acc.find(i => i.productId === item.productId && i.unitPrice === item.unitPrice);
       if (existing) {
         existing.quantity += item.quantity;
       } else {
@@ -37,119 +33,102 @@ export class SaleService {
       return acc;
     }, [] as SaleItemInput[]);
 
-    
     return await prisma.$transaction(async (tx) => {
-      // 3. Snapshot do Vendedor
       const user = await tx.user.findUnique({ where: { id: userId } });
-      if (!user) throw new Error('Vendedor não encontrado no sistema.');
+      if (!user) throw new Error('Vendedor não encontrado.');
 
       let totalSaleValue = new Decimal(0);
       const saleItemsToCreate = [];
 
-      // 4. Processar cada produto (já agrupado)
       for (const item of groupedItems) {
+        // Buscamos o produto incluindo as promoções
         const product = await tx.product.findUnique({
           where: { id: item.productId },
           include: {
+            promotions: { where: { isActive: true } },
             batches: {
               where: { currentQuantity: { gt: 0 } },
-              orderBy: { expirationDate: 'asc' }, // FEFO: Primeiro que vence, sai antes
+              orderBy: { expirationDate: 'asc' },
             },
           },
-      });
-      
-      if (!product) throw new Error(`Produto ${item.productId} não encontrado.`);
-
-      // REGRA CRÍTICA: Bloquear venda de produto inativo
-      if (!product.isAvailable) {
-        throw new Error(`O produto ${product.name} não está disponível para venda.`);
-      }
-
-      // --- NOVA LÓGICA: FILTRAR LOTES VENCIDOS ---
-      const now = new Date();
-      
-      // 1. Separa apenas os lotes onde a data de validade é maior ou igual a agora
-      const validBatches = product.batches.filter(batch => new Date(batch.expirationDate) >= now);
-
-      // 2. Calcula quanto estoque VÁLIDO nós temos (ignora o saldo de lotes vencidos)
-      const totalValidStock = validBatches.reduce((acc, batch) => acc + batch.currentQuantity, 0);
-
-      // 3. Validação de Estoque Real
-      if (totalValidStock < item.quantity) {
-        throw new Error(`Estoque insuficiente para ${product.name}. (Solicitado: ${item.quantity}, Disponível Válido: ${totalValidStock}). Verifique se há lotes vencidos.`);
-      }
-
-      let remainingToExit = item.quantity;
-      const batchesUsedData = [];
-
-      // 5. Baixa nos Lotes (Agora iteramos sobre validBatches, e não product.batches)
-      for (const batch of validBatches) {
-        if (remainingToExit <= 0) break;
-
-        const amountFromThisBatch = Math.min(batch.currentQuantity, remainingToExit);
-      
-        await tx.batch.update({
-          where: { id: batch.id },
-          data: { currentQuantity: { decrement: amountFromThisBatch } },
         });
 
-        batchesUsedData.push({
-          batchId: batch.id,
-          quantity: amountFromThisBatch,
-          unitCost: batch.unitCost,
-        });
+        if (!product) throw new Error(`Produto ${item.productId} não encontrado.`);
+        if (!product.isAvailable) throw new Error(`Produto ${product.name} indisponível.`);
 
-        remainingToExit -= amountFromThisBatch;
-      }
+        // --- VALIDAÇÃO DE PREÇO (SEGURANÇA) ---
+        const { originalPrice, promotionalPrice } = this.calculateExpectedPrices(product);
+        const sentPrice = new Decimal(item.unitPrice).toDecimalPlaces(2);
 
-      // Trava de segurança (Lotes vs Global)
-        if (remainingToExit > 0) {
-          throw new Error(`Inconsistência de estoque: os lotes do produto ${product.name} não somam a quantidade necessária.`);
+        // Verifica se o preço enviado bate com o original OU com o promocional
+        const isOriginalPrice = sentPrice.equals(originalPrice);
+        const isPromotionalPrice = promotionalPrice ? sentPrice.equals(promotionalPrice) : false;
+
+        if (!isOriginalPrice && !isPromotionalPrice) {
+          throw new Error(
+            `Preço inválido para ${product.name}. Enviado: ${sentPrice}, Esperado: ${promotionalPrice || originalPrice}`
+          );
         }
 
-        // 6. Atualização do Produto Global
+        // --- LÓGICA DE ESTOQUE (FEFO) ---
+        const now = new Date();
+        const validBatches = product.batches.filter(b => new Date(b.expirationDate) >= now);
+        const totalValidStock = validBatches.reduce((acc, b) => acc + b.currentQuantity, 0);
+
+        if (totalValidStock < item.quantity) {
+          throw new Error(`Estoque insuficiente (válido) para ${product.name}.`);
+        }
+
+        let remainingToExit = item.quantity;
+        const batchesUsedData = [];
+
+        for (const batch of validBatches) {
+          if (remainingToExit <= 0) break;
+          const amountFromThisBatch = Math.min(batch.currentQuantity, remainingToExit);
+          
+          await tx.batch.update({
+            where: { id: batch.id },
+            data: { currentQuantity: { decrement: amountFromThisBatch } },
+          });
+
+          batchesUsedData.push({
+            batchId: batch.id,
+            quantity: amountFromThisBatch,
+            unitCost: batch.unitCost,
+          });
+          remainingToExit -= amountFromThisBatch;
+        }
+
         await tx.product.update({
           where: { id: item.productId },
           data: { stockQuantity: { decrement: item.quantity } },
         });
 
-        // Se a venda esgotou um lote, o custo do produto deve "pular" para o próximo lote da fila
         await this.updateProductCost(tx, item.productId);
 
-        // 7. Cálculos Financeiros
-        const itemUnitPrice = product.price;
-        const itemSubTotal = itemUnitPrice.mul(item.quantity);
+        // --- CÁLCULOS FINAIS USANDO O PREÇO VALIDADO ---
+        const itemSubTotal = sentPrice.mul(item.quantity);
         totalSaleValue = totalSaleValue.add(itemSubTotal);
 
         saleItemsToCreate.push({
           productId: product.id,
           productName: product.name,
           quantity: item.quantity,
-          unitPrice: itemUnitPrice,
+          unitPrice: sentPrice, // Salvamos o preço que foi validado
           subTotal: itemSubTotal,
-          batches: {
-            create: batchesUsedData,
-          },
+          batches: { create: batchesUsedData },
         });
       }
 
-      // 8. Criação do registro de Venda
       return await tx.sale.create({
         data: {
           userId,
           userName: user.name,
           paymentMethod,
           totalValue: totalSaleValue,
-          status: SaleStatus.COMPLETED,
-          items: {
-            create: saleItemsToCreate,
-          },
+          items: { create: saleItemsToCreate },
         },
-        include: {
-          items: {
-            include: { batches: true },
-          },
-        },
+        include: { items: { include: { batches: true } } },
       });
     });
   }
@@ -300,5 +279,34 @@ export class SaleService {
         data: { cost: oldestBatch.unitCost },
       });
     }
+  }
+
+  // Método auxiliar interno para calcular o preço esperado (Original ou Promoção)
+  private calculateExpectedPrices(product: any) {
+    const now = new Date();
+    const originalPrice = new Decimal(product.price);
+    
+    // Busca promoção ativa
+    const activePromo = product.promotions?.find((p: any) => {
+      return p.isActive && now >= p.startDate && now <= p.endDate;
+    });
+
+    let promotionalPrice: Decimal | null = null;
+
+    if (activePromo) {
+      const discount = new Decimal(activePromo.discountValue);
+      if (activePromo.discountType === 'PERCENTAGE') {
+        // Preço = Preço - (Preço * (Desconto / 100))
+        promotionalPrice = originalPrice.sub(originalPrice.mul(discount.div(100)));
+      } else {
+        // Preço = Preço - Desconto Fixo
+        promotionalPrice = originalPrice.sub(discount);
+      }
+    }
+
+    return {
+      originalPrice: originalPrice.toDecimalPlaces(2),
+      promotionalPrice: promotionalPrice ? promotionalPrice.toDecimalPlaces(2) : null
+    };
   }
 }

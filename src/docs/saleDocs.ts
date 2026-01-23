@@ -54,6 +54,7 @@ export const saleDocs = {
     // * REGISTRA NOVA VENDA
     post: {
       summary: 'Registra uma nova venda (Baixa automática via FEFO)',
+      description: 'Cria uma venda validando se o unitPrice enviado pelo front-end corresponde ao preço original do produto ou a uma promoção ativa.',
       tags: ['Vendas'],
       security: [{ bearerAuth: [] }],
       requestBody: {
@@ -73,10 +74,15 @@ export const saleDocs = {
                   type: 'array',
                   items: {
                     type: 'object',
-                    required: ['productId', 'quantity'],
+                    required: ['productId', 'quantity', 'unitPrice'], // <--- ADICIONADO unitPrice
                     properties: {
                       productId: { type: 'string', format: 'uuid', example: 'uuid-do-produto' },
                       quantity: { type: 'integer', example: 2 },
+                      unitPrice: { 
+                        type: 'number', 
+                        description: 'O preço praticado (deve ser o preço original ou promocional)',
+                        example: 25.50 
+                      },
                     },
                   },
                   minItems: 1
@@ -103,9 +109,11 @@ export const saleDocs = {
             },
           },
         },
-        400: { description: 'Dados inválidos ou erro na lógica de venda' },
+        400: { 
+          description: 'Dados inválidos, estoque insuficiente ou PREÇO DIVERGENTE do esperado.' 
+        },
         401: { description: 'Usuário não autenticado' },
-        404: { description: 'Produto não encontrado, indisponível ou estoque insuficiente' },
+        404: { description: 'Produto não encontrado ou indisponível' },
       },
     },
   },

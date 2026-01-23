@@ -13,6 +13,7 @@ const createSaleSchema = z.object({
     z.object({
       productId: z.string().uuid('ID de produto inválido.'),
       quantity: z.coerce.number().int().positive('A quantidade deve ser um número inteiro positivo.'),
+      unitPrice: z.coerce.number().positive('O preço unitário deve ser um número positivo.'),
     })
   ).min(1, 'A venda deve conter pelo menos um produto.'),
 });
@@ -32,17 +33,16 @@ const handleError = (res: Response, error: any) => {
 
     const msg = normalize(error.message);
 
-    // 404 apenas para o que REALMENTE não existe
     if (msg.includes('nao encontrado') || msg.includes('invalid')) {
       return res.status(404).json({ message: error.message });
     }
 
-    // 400 para erros de lógica de negócio (Estoque, Produto Inativo, Venda já cancelada)
     if (
       msg.includes('indisponivel') || 
       msg.includes('insuficiente') ||
       msg.includes('inconsist') ||
-      msg.includes('ja foi cancelada')
+      msg.includes('ja foi cancelada') ||
+      msg.includes('preco invalido') // Captura a nova validação de segurança do SaleService
     ) {
       return res.status(400).json({ message: error.message });
     }

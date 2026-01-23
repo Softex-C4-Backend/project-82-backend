@@ -31,13 +31,33 @@ const handleError = (res: Response, error: any) => {
   if (error instanceof ZodError) {
     return res.status(400).json({ message: 'Dados inválidos', errors: error.errors });
   }
+  
   if (error instanceof Error) {
-    if (error.message.includes('não encontrado') || error.message.includes('inválida')) {
+    // Normalização para facilitar a captura de mensagens (ignora acentos e maiúsculas)
+    const normalize = (s: string) => 
+      s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    const msg = normalize(error.message);
+
+    // Erros 404: Produto, Categoria ou Fornecedor não encontrados
+    if (msg.includes('nao encontrado') || msg.includes('invalida')) {
       return res.status(404).json({ message: error.message });
     }
+
+    // Erros 400: Regras de negócio (Código duplicado, estoque positivo ao deletar, etc)
+    if (
+      msg.includes('ja cadastrado') || 
+      msg.includes('ja esta em uso') ||
+      msg.includes('estoque') ||
+      msg.includes('lotes vinculados')
+    ) {
+      return res.status(400).json({ message: error.message });
+    }
+
     return res.status(400).json({ message: error.message });
   }
-  return res.status(500).json({ message: 'Erro interno' });
+  
+  return res.status(500).json({ message: 'Erro interno no servidor de produtos' });
 };
 
 

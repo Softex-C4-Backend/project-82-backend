@@ -71,14 +71,17 @@ export class ProductService {
 
   // --- 2. LISTAR TODOS OS PRODUTOS ---
   async findAllProducts() {
-    return prisma.product.findMany({
+    const products = await prisma.product.findMany({
       orderBy: { name: 'asc' },
-      // Inclui a categoria e o fornecedor para melhor exibição no front-end
       include: {
         category: true,
         supplier: true,
+        promotions: { where: { isActive: true } } // Traz as promos ativas
       }
     });
+
+    // Passa cada produto pela lógica de cálculo antes de enviar para o controller
+    return products.map(p => this.applyPromotionLogic(p));
   }
 
   // --- 3. BUSCAR PRODUTO POR ID ---
@@ -88,12 +91,13 @@ export class ProductService {
       include: {
         category: true,
         supplier: true,
+        promotions: { where: { isActive: true } }
       }
     });
-    if (!product) {
-      throw new Error('Produto não encontrado.');
-    }
-    return product;
+
+    if (!product) throw new Error('Produto não encontrado.');
+
+    return this.applyPromotionLogic(product);
   }
 
   // --- 4. BUSCAR PRODUTO POR CÓDIGO ---
@@ -103,43 +107,44 @@ export class ProductService {
       include: {
         category: true,
         supplier: true,
+        promotions: { where: { isActive: true } }
       }
     });
 
-    if (!product) {
-      throw new Error('Produto não encontrado.');
-    }
+    if (!product) throw new Error('Produto não encontrado.');
 
-    return product;
+    return this.applyPromotionLogic(product);
   }
 
   // --- 5. RELATÓRIO DE VALOR EM ESTOQUE ---
   async searchProducts(term: string) {
-    // 1. Tenta buscar por código exato primeiro (Alta Prioridade)
+    const commonInclude = {
+      category: true,
+      supplier: true,
+      promotions: { where: { isActive: true } }
+    };
+
     const productByCode = await prisma.product.findUnique({
       where: { code: term },
-      include: { category: true, supplier: true }
+      include: commonInclude
     });
 
-    // Se achou pelo código, retorna ele dentro de um array (para manter o padrão de lista)
     if (productByCode) {
-      return [productByCode];
+      return [this.applyPromotionLogic(productByCode)];
     }
 
-    // 2. Se não achou pelo código, busca por nome (case insensitive)
-    return await prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         OR: [
           { name: { contains: term, mode: 'insensitive' } },
-          { code: { contains: term } } // Opcional: busca parcial no código também
+          { code: { contains: term } }
         ]
       },
-      include: {
-        category: true,
-        supplier: true,
-      },
-      take: 20 // Limita para não travar o front se a busca for muito genérica
+      include: commonInclude,
+      take: 20
     });
+
+    return products.map(p => this.applyPromotionLogic(p));
   }
 
   // --- 6. ATUALIZAR PRODUTO ---
@@ -214,5 +219,35 @@ export class ProductService {
     await prisma.product.delete({ where: { id } });
 
     return { message: 'Produto removido com sucesso.' };
+  }
+
+  // Método auxiliar para processar a promoção ativa e calcular o preço
+  private applyPromotionLogic(product: any) {
+    const now = new Date();
+    
+    // Busca a primeira promoção que esteja ativa e dentro do prazo de validade
+    const activePromo = product.promotions?.find((p: any) => {
+      return p.isActive && now >= p.startDate && now <= p.endDate;
+    });
+
+    let promotionalPrice = null;
+
+    if (activePromo) {
+      const originalPrice = Number(product.price);
+      const discount = Number(activePromo.discountValue);
+
+      if (activePromo.discountType === 'PERCENTAGE') {
+        promotionalPrice = originalPrice - (originalPrice * (discount / 100));
+      } else {
+        promotionalPrice = originalPrice - discount;
+      }
+    }
+
+    // Retorna o produto com os novos campos virtuais para o Front
+    return {
+      ...product,
+      promotionalPrice: promotionalPrice ? Number(promotionalPrice.toFixed(2)) : null,
+      activePromotion: activePromo || null
+    };
   }
 }
