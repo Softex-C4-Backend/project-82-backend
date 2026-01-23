@@ -46,4 +46,12 @@ router.get(
   dashboardController.getLossesByCategory
 );
 
+// Rota para ranking de produtos mais vendidos
+router.get(
+  '/best-sellers',
+  authMiddleware,
+  authorizeRole(['MANAGER']),
+  dashboardController.getBestSellers
+);
+
 export default router;

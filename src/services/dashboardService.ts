@@ -211,4 +211,57 @@ export class DashboardService {
 
     return result.sort((a, b) => b.totalLossValue - a.totalLossValue);
   }
+
+  // --- 7. PRODUTOS MAIS VENDIDOS (RANKING) ---
+  // Retorna os produtos mais vendidos em um período, limitado a X itens
+  async getBestSellers(days: number = 30, limit: number = 5) {
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - days);
+
+    // 1. Agrupa os itens vendidos, soma quantidades e valores
+    const ranking = await prisma.saleItem.groupBy({
+      by: ['productId'],
+      where: {
+        sale: {
+          createdAt: { gte: startDate },
+          status: 'COMPLETED'
+        }
+      },
+      _sum: {
+        quantity: true,
+        subTotal: true
+      },
+      orderBy: {
+        _sum: { quantity: 'desc' }
+      },
+      take: limit
+    });
+
+    // 2. Busca os detalhes (Nome e Estoque Atual) dos produtos retornados
+    // O groupBy não permite 'include', então precisamos buscar os nomes separadamente
+    const enrichedRanking = await Promise.all(ranking.map(async (item) => {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+        select: {
+          name: true,
+          code: true,
+          stockQuantity: true, // Estoque atual para comparar com o volume de vendas
+          unitOfMeasure: true
+        }
+      });
+
+      return {
+        productId: item.productId,
+        productName: product?.name || 'Produto Removido',
+        productCode: product?.code,
+        unitOfMeasure: product?.unitOfMeasure,
+        totalSold: item._sum.quantity || 0,
+        totalRevenue: Number(item._sum.subTotal) || 0,
+        currentStock: product?.stockQuantity || 0
+      };
+    }));
+
+    return enrichedRanking;
+  }
 }

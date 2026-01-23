@@ -71,4 +71,18 @@ export class DashboardController {
       return res.status(500).json({ message });
     }
   }
+
+  // GET /dashboard/best-sellers
+  async getBestSellers(req: Request, res: Response) {
+    try {
+      const days = req.query.days ? Number(req.query.days) : 30;
+      const limit = req.query.limit ? Number(req.query.limit) : 5;
+      
+      const result = await dashboardService.getBestSellers(days, limit);
+      return res.status(200).json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao buscar ranking de produtos';
+      return res.status(500).json({ message });
+    }
+  }
 }
