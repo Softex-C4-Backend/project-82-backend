@@ -13,7 +13,7 @@ const createSaleSchema = z.object({
     z.object({
       productId: z.string().uuid('ID de produto inválido.'),
       quantity: z.coerce.number().int().positive('A quantidade deve ser um número inteiro positivo.'),
-      unitPrice: z.coerce.number().positive('O preço unitário deve ser um número positivo.'),
+      unitPrice: z.coerce.number().positive('O preço unitário deve ser um número positivo.').optional(),
     })
   ).min(1, 'A venda deve conter pelo menos um produto.'),
 });
