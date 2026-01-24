@@ -74,7 +74,7 @@ export const saleDocs = {
                   type: 'array',
                   items: {
                     type: 'object',
-                    required: ['productId', 'quantity', 'unitPrice'], // <--- ADICIONADO unitPrice
+                    required: ['productId', 'quantity'],
                     properties: {
                       productId: { type: 'string', format: 'uuid', example: 'uuid-do-produto' },
                       quantity: { type: 'integer', example: 2 },

@@ -6,7 +6,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 interface SaleItemInput {
   productId: string;
   quantity: number;
-  unitPrice: number;
+  unitPrice?: number;
 }
 
 // DTO para Criação de Venda
@@ -17,11 +17,11 @@ interface CreateSaleDTO {
 }
 
 export class SaleService {
-  // === 1. CRIAR VENDA COM LÓGICA FEFO ===
+  // === 1. CRIAR VENDA COM LÓGICA DE PREÇO AUTOMÁTICO E FEFO ===
   async createSale({ userId, paymentMethod, items }: CreateSaleDTO) {
     if (!items || items.length === 0) throw new Error('Uma venda deve conter pelo menos um item.');
 
-    // Consolidação de itens (agora levando em conta o unitPrice enviado)
+    // Consolidação de itens (agora aceita itens sem unitPrice)
     const groupedItems = items.reduce((acc, item) => {
       if (item.quantity <= 0) throw new Error('Quantidade deve ser maior que zero.');
       const existing = acc.find(i => i.productId === item.productId && i.unitPrice === item.unitPrice);
@@ -56,17 +56,21 @@ export class SaleService {
         if (!product) throw new Error(`Produto ${item.productId} não encontrado.`);
         if (!product.isAvailable) throw new Error(`Produto ${product.name} indisponível.`);
 
-        // --- VALIDAÇÃO DE PREÇO (SEGURANÇA) ---
+        // --- VALIDAÇÃO E DEFINIÇÃO DE PREÇO (LÓGICA AUTOMÁTICA) ---
         const { originalPrice, promotionalPrice } = this.calculateExpectedPrices(product);
-        const sentPrice = new Decimal(item.unitPrice).toDecimalPlaces(2);
+        
+        // O sistema prioriza a promoção ativa; se não houver, usa o preço original
+        const expectedPrice = promotionalPrice || originalPrice;
 
-        // Verifica se o preço enviado bate com o original OU com o promocional
-        const isOriginalPrice = sentPrice.equals(originalPrice);
-        const isPromotionalPrice = promotionalPrice ? sentPrice.equals(promotionalPrice) : false;
+        // Se o unitPrice não foi enviado no JSON, o sistema usa o expectedPrice automaticamente
+        const finalPrice = item.unitPrice !== undefined 
+          ? new Decimal(item.unitPrice).toDecimalPlaces(2) 
+          : expectedPrice;
 
-        if (!isOriginalPrice && !isPromotionalPrice) {
+        // Trava de Segurança: Mesmo que enviado, o preço deve bater com o esperado pelo sistema
+        if (!finalPrice.equals(expectedPrice)) {
           throw new Error(
-            `Preço inválido para ${product.name}. Enviado: ${sentPrice}, Esperado: ${promotionalPrice || originalPrice}`
+            `Preço inválido para ${product.name}. Enviado: ${finalPrice}, Esperado: ${expectedPrice}`
           );
         }
 
@@ -106,15 +110,15 @@ export class SaleService {
 
         await this.updateProductCost(tx, item.productId);
 
-        // --- CÁLCULOS FINAIS USANDO O PREÇO VALIDADO ---
-        const itemSubTotal = sentPrice.mul(item.quantity);
+        // --- CÁLCULOS FINAIS USANDO O PREÇO DEFINIDO PELO BACKEND ---
+        const itemSubTotal = finalPrice.mul(item.quantity);
         totalSaleValue = totalSaleValue.add(itemSubTotal);
 
         saleItemsToCreate.push({
           productId: product.id,
           productName: product.name,
           quantity: item.quantity,
-          unitPrice: sentPrice, // Salvamos o preço que foi validado
+          unitPrice: finalPrice, 
           subTotal: itemSubTotal,
           batches: { create: batchesUsedData },
         });
